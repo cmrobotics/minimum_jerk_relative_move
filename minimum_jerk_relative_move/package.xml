@@ -18,6 +18,8 @@
   <depend>rclcpy_action</depend>
   <depend>minimum_jerk_trajectory_planner</depend>
   <depend>cmr_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
 
   <export>
     <build_type>ament_python</build_type>
