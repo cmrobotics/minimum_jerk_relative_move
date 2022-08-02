@@ -2,7 +2,7 @@ from setuptools import setup
 import os
 from glob import glob 
 
-package_name = ''
+package_name = 'minimum_jerk_relative_move'
 
 setup(
     name=package_name,

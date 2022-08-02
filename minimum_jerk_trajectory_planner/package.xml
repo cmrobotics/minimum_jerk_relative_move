@@ -16,7 +16,6 @@
   <depend>rclpy</depend>
   <depend>std_msgs</depend>
   <depend>rclcpy_action</depend>
-  <depend>minimum_jerk_trajectory_planner</depend>
   <depend>cmr_msgs</depend>
 
   <export>
