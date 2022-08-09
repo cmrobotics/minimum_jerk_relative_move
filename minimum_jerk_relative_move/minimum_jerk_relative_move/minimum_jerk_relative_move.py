@@ -22,14 +22,15 @@ dt = 0.1
 
 class MinimumJerkRelativeMove(Node):
 
-    def __init__(self): 
+    def __init__(self):
         super().__init__('minimum_jerk_relative_move')
         self.get_logger().info('Initialized Minimum Jerk relative move Node')
 
         self._init_pose = Pose(0, 0, 0)
         self._current_pose = Pose(0, 0, 0)
 
-        self._publisher = self.create_publisher(Twist, 'cmd_vel', qos_profile_system_default)
+        self._publisher = self.create_publisher(
+            Twist, 'cmd_vel', qos_profile_system_default)
         self._action_rotation_server = ActionServer(
             self, Rotate, 'rotate', self.rotation_callback)
         self._action_translation_server = ActionServer(
@@ -45,8 +46,9 @@ class MinimumJerkRelativeMove(Node):
         self.sim_time_stamp_ = Time().to_msg()
 
     """
-    Get simulation clock 
+    Get simulation clock
     """
+
     def clock_callback(self, msg):
         self.sim_time_stamp_ = msg.clock
 
@@ -63,19 +65,18 @@ class MinimumJerkRelativeMove(Node):
             self.get_logger().error(
                 f'Could not transform base_footprint to odom: {ex}')
             return None
- 
+
         pose = Pose()
         pose.x = trans.transform.translation.x
         pose.theta = euler_from_quaternion(
             trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z, trans.transform.rotation.w)["z"]
-        
+
         return pose
 
     def rotation_callback(self, goal_handle):
         self.get_logger().info('Rotation')
 
         t_init = time.time()
-
 
         self._init_pose = self.get_current_pose()
         if (self._init_pose is None):
@@ -85,7 +86,7 @@ class MinimumJerkRelativeMove(Node):
         pose_target = Pose(0, 0, goal_handle.request.target_yaw)
         pose_start = Pose(0, 0, 0)
 
-        dist = pose_target.theta
+        dist = abs(pose_target.theta)
         max_total = dist/goal_handle.request.min_rotational_vel
         robot = Robot("Robot", "b", max_total, controller,
                       pose_start, pose_target, "r")
@@ -105,12 +106,13 @@ class MinimumJerkRelativeMove(Node):
                 angular_vel.angular.z = 0.0
                 self._publisher.publish(angular_vel)
                 goal_handle.canceled()
-            
+
             self._current_pose = self.get_current_pose()
             if (self._current_pose is None):
                 goal_handle.abort()
 
-            rotation_feedback.angular_distance_traveled = abs(self._current_pose.theta - self._init_pose.theta)
+            rotation_feedback.angular_distance_traveled = abs(
+                self._current_pose.theta - self._init_pose.theta)
             angular_vel.angular.z = float(vel.theta)
             self._publisher.publish(angular_vel)
             goal_handle.publish_feedback(rotation_feedback)
@@ -122,9 +124,12 @@ class MinimumJerkRelativeMove(Node):
         self._current_pose = self.get_current_pose()
         if (self._current_pose is None):
             goal_handle.abort()
-        rotation_feedback.angular_distance_traveled = abs(self._current_pose.theta - self._init_pose.theta)
+        rotation_feedback.angular_distance_traveled = abs(
+            self._current_pose.theta - self._init_pose.theta)
 
-        if abs(rotation_feedback.angular_distance_traveled - goal_handle.request.target_yaw) <= yaw_tolerance:
+        print(rotation_feedback.angular_distance_traveled)
+
+        if abs(rotation_feedback.angular_distance_traveled - abs(goal_handle.request.target_yaw)) <= yaw_tolerance:
             goal_handle.succeed()
         else:
             goal_handle.abort()
@@ -144,7 +149,7 @@ class MinimumJerkRelativeMove(Node):
         controller = MinimumJerkTrajectoryPlanner()
         pose_target = Pose(goal_handle.request.target.x, 0, 0)
         pose_start = Pose(0, 0, 0)
-        dist = pose_target.x
+        dist = abs(pose_target.x)
 
         max_total = dist/goal_handle.request.speed
         robot = Robot("Robot", "b", max_total, controller,
@@ -171,7 +176,8 @@ class MinimumJerkRelativeMove(Node):
             if (self._current_pose is None):
                 goal_handle.abort()
 
-            translation_feedback.distance_traveled = abs(self._current_pose.x - self._init_pose.x)
+            translation_feedback.distance_traveled = abs(
+                self._current_pose.x - self._init_pose.x)
             linear_vel.linear.x = float(vel.x)
             self._publisher.publish(linear_vel)
             goal_handle.publish_feedback(translation_feedback)
@@ -183,9 +189,13 @@ class MinimumJerkRelativeMove(Node):
         self._current_pose = self.get_current_pose()
         if (self._current_pose is None):
             goal_handle.abort()
-        translation_feedback.distance_traveled = abs(self._current_pose.x - self._init_pose.x)
 
-        if abs(translation_feedback.distance_traveled - goal_handle.request.target.x) <= xy_tolerance:
+        translation_feedback.distance_traveled = abs(
+            self._current_pose.x - self._init_pose.x)
+
+        print(translation_feedback.distance_traveled)
+
+        if abs(translation_feedback.distance_traveled - abs(goal_handle.request.target.x)) <= xy_tolerance:
             goal_handle.succeed()
         else:
             goal_handle.abort()
