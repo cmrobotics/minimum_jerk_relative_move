@@ -33,4 +33,7 @@ def euler_to_quaternion(roll, pitch, yaw):
                   "w": cos_roll * cos_pitch * cos_yaw + sin_roll * sin_pitch * sin_yaw}
     return quaternion
 
+def distance(pos1, pos2):
+    return sqrt((pos1.x - pos2.x)**2 + (pos1.y -pos2.y)**2)
+
 

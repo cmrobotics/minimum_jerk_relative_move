@@ -15,7 +15,7 @@ from tf2_ros.transform_listener import TransformListener
 from minimum_jerk_trajectory_planner.TrajectoryPlanners import MinimumJerkTrajectoryPlanner
 from minimum_jerk_trajectory_planner.Pose import Pose
 from minimum_jerk_trajectory_planner.Robot import Robot
-from .mathematical_fonctions import euler_from_quaternion
+from .mathematical_fonctions import distance, euler_from_quaternion
 
 dt = 0.1
 
@@ -68,6 +68,7 @@ class MinimumJerkRelativeMove(Node):
 
         pose = Pose()
         pose.x = trans.transform.translation.x
+        pose.y = trans.transform.translation.y
         pose.theta = euler_from_quaternion(
             trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z, trans.transform.rotation.w)["z"]
 
@@ -127,8 +128,6 @@ class MinimumJerkRelativeMove(Node):
         rotation_feedback.angular_distance_traveled = abs(
             self._current_pose.theta - self._init_pose.theta)
 
-        print(rotation_feedback.angular_distance_traveled)
-
         if abs(rotation_feedback.angular_distance_traveled - abs(goal_handle.request.target_yaw)) <= yaw_tolerance:
             goal_handle.succeed()
         else:
@@ -176,8 +175,7 @@ class MinimumJerkRelativeMove(Node):
             if (self._current_pose is None):
                 goal_handle.abort()
 
-            translation_feedback.distance_traveled = abs(
-                self._current_pose.x - self._init_pose.x)
+            translation_feedback.distance_traveled = distance(self._current_pose, self._init_pose)
             linear_vel.linear.x = float(vel.x)
             self._publisher.publish(linear_vel)
             goal_handle.publish_feedback(translation_feedback)
@@ -190,10 +188,7 @@ class MinimumJerkRelativeMove(Node):
         if (self._current_pose is None):
             goal_handle.abort()
 
-        translation_feedback.distance_traveled = abs(
-            self._current_pose.x - self._init_pose.x)
-
-        print(translation_feedback.distance_traveled)
+        translation_feedback.distance_traveled = distance(self._current_pose, self._init_pose)
 
         if abs(translation_feedback.distance_traveled - abs(goal_handle.request.target.x)) <= xy_tolerance:
             goal_handle.succeed()
