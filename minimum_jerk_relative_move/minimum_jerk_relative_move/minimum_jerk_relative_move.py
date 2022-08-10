@@ -16,6 +16,7 @@ from minimum_jerk_trajectory_planner.TrajectoryPlanners import MinimumJerkTrajec
 from minimum_jerk_trajectory_planner.Pose import Pose
 from minimum_jerk_trajectory_planner.Robot import Robot
 from .mathematical_fonctions import distance, euler_from_quaternion
+import matplotlib.pyplot as plt
 
 dt = 0.1
 
@@ -35,29 +36,13 @@ class MinimumJerkRelativeMove(Node):
             self, Rotate, 'rotate', self.rotation_callback)
         self._action_translation_server = ActionServer(
             self, Translate, 'translate', self.translation_callback)
-        self.clock_subscription = self.create_subscription(
-            ClockMsg, "clock", self.clock_callback, qos_profile_sensor_data
-        )
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
-        self.use_sim_time_ = self.get_parameter("use_sim_time").value
-        self.sim_time_stamp_ = Time().to_msg()
-
-    """
-    Get simulation clock
-    """
-
-    def clock_callback(self, msg):
-        self.sim_time_stamp_ = msg.clock
-
     def get_current_pose(self):
         try:
-            if (self.use_sim_time_):
-                now = self.sim_time_stamp_
-            else:
-                now = Time()
+            now = Time()
 
             trans = self.tf_buffer.lookup_transform(
                 'odom', 'base_footprint', now)
@@ -138,6 +123,7 @@ class MinimumJerkRelativeMove(Node):
         return res
 
     def translation_callback(self, goal_handle):
+
         self.get_logger().info('Translation')
         t_init = time.time()
 
@@ -175,7 +161,8 @@ class MinimumJerkRelativeMove(Node):
             if (self._current_pose is None):
                 goal_handle.abort()
 
-            translation_feedback.distance_traveled = distance(self._current_pose, self._init_pose)
+            translation_feedback.distance_traveled = distance(
+                self._current_pose, self._init_pose)
             linear_vel.linear.x = float(vel.x)
             self._publisher.publish(linear_vel)
             goal_handle.publish_feedback(translation_feedback)
@@ -188,7 +175,8 @@ class MinimumJerkRelativeMove(Node):
         if (self._current_pose is None):
             goal_handle.abort()
 
-        translation_feedback.distance_traveled = distance(self._current_pose, self._init_pose)
+        translation_feedback.distance_traveled = distance(
+            self._current_pose, self._init_pose)
 
         if abs(translation_feedback.distance_traveled - abs(goal_handle.request.target.x)) <= xy_tolerance:
             goal_handle.succeed()
@@ -197,4 +185,8 @@ class MinimumJerkRelativeMove(Node):
 
         res = Translate.Result()
         res.total_elapsed_time.sec = int((time.time() - t_init))
+        res.total_elapsed_time.nanosec = int(((time.time() - t_init)-res.total_elapsed_time.sec)*10**9)
+
+        print(res)
+
         return res
