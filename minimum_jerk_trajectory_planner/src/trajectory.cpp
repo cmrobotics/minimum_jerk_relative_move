@@ -2,60 +2,33 @@
 
 namespace minimum_jerk
 {
-    Trajectory::Trajectory(double *timestamps, Pose *poses, int poses_size) : timestamps(timestamps), poses(poses), poses_size(poses_size)
+    Trajectory::Trajectory(std::vector<double> timestamps, std::vector<Pose> poses) : timestamps(timestamps), poses(poses)
     {
-        velocitoties = (Velocity *)malloc(sizeof(Velocity) * poses_size - 1);
-        accelerations = (Acceleration *)malloc(sizeof(Acceleration) * poses_size - 2);
-        set_velocities(velocitoties);
-        set_accelerations(accelerations);
+        set_velocities();
+        set_accelerations();
     }
 
-    Trajectory::~Trajectory()
-    {
-        free(velocitoties);
-        free(accelerations);
-    }
-
-    Trajectory::Trajectory(const Trajectory &src) : timestamps(src.timestamps), poses_size(src.poses_size)
-    {
-        velocitoties = (Velocity *)malloc(sizeof(Velocity) * poses_size - 1);
-        accelerations = (Acceleration *)malloc(sizeof(Acceleration) * poses_size - 2);
-        memcpy(velocitoties, src.velocitoties, poses_size * sizeof(Velocity));
-        memcpy(accelerations, src.accelerations, poses_size * sizeof(Acceleration));
-    }
-
-    Trajectory &Trajectory::operator=(const Trajectory &src)
-    {
-        velocitoties = (Velocity *)malloc(sizeof(Velocity) * poses_size - 1);
-        accelerations = (Acceleration *)malloc(sizeof(Acceleration) * poses_size - 2);
-        timestamps = src.timestamps;
-        poses_size = src.poses_size;
-        memcpy(velocitoties, src.velocitoties, poses_size * sizeof(Velocity));
-        memcpy(accelerations, src.accelerations, poses_size * sizeof(Acceleration));
-        return *this;
-    }
-
-    void Trajectory::set_velocities(Velocity *vel)
+    void Trajectory::set_velocities()
     {
         double dt;
-        for (int k = 0; k < poses_size - 1; k++)
+        for (size_t k = 0; k < poses.size() - 1; k++)
         {
-            dt = timestamps[k + 1] - timestamps[k];
-            velocitoties[k] = Velocity((poses[k].x - poses[k + 1].x) / dt,
-                                       (poses[k].y - poses[k + 1].y) / dt,
-                                       (poses[k].theta - poses[k + 1].theta) / dt);
+            dt = timestamps.at(k + 1) - timestamps.at(k);
+            velocities.push_back(Velocity((poses.at(k + 1).x - poses.at(k).x) / dt,
+                                            (poses.at(k + 1).y - poses.at(k).y) / dt,
+                                            (poses.at(k + 1).theta - poses.at(k).theta) / dt));
         }
     }
 
-    void Trajectory::set_accelerations(Acceleration *acc)
+    void Trajectory::set_accelerations()
     {
         double dt;
-        for (int k = 0; k < poses_size - 2; k++)
+        for (size_t k = 0; k < velocities.size() - 1; k++)
         {
-            dt = timestamps[k + 1] - timestamps[k];
-            velocitoties[k] = Velocity((velocitoties[k].x - velocitoties[k + 1].x) / dt,
-                                       (velocitoties[k].y - velocitoties[k + 1].y) / dt,
-                                       (velocitoties[k].theta - velocitoties[k + 1].theta) / dt);
+            dt = timestamps.at(k + 1) - timestamps.at(k);
+            accelerations.push_back(Acceleration((velocities.at(k + 1).x - velocities.at(k).x) / dt,
+                                                 (velocities.at(k + 1).y - velocities.at(k).y) / dt,
+                                                 (velocities.at(k + 1).theta - velocities.at(k).theta) / dt));
         }
     }
 

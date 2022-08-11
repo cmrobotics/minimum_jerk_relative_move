@@ -4,24 +4,22 @@
 #include "pose.hpp"
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
+
 
 namespace minimum_jerk
 {
     class Trajectory
     {
     public:
-        double* timestamps;
-        Pose *poses;
-        int poses_size;
-        Velocity *velocitoties;
-        Acceleration *accelerations;
-        Trajectory(double* timestamps, Pose *poses, int poses_size);
-        ~Trajectory();
-        Trajectory(const Trajectory &src);
-        Trajectory &operator=(const Trajectory &src);
+        std::vector<double> timestamps;
+        std::vector<Pose> poses;
+        std::vector<Velocity> velocities;
+        std::vector<Acceleration> accelerations;
+        Trajectory(std::vector<double>  timestamps, std::vector<Pose> poses);
 
     private:
-        void set_velocities(Velocity* vel);
-        void set_accelerations(Acceleration* acc);
+        void set_velocities();
+        void set_accelerations();
     };
 }

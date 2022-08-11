@@ -15,19 +15,14 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_AUTOMOC ON)
-
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(cmr_msgs REQUIRED)
 
-include_directories(include)
+set(library_name "${PROJECT_NAME}_lib")
 
-set(library_name ${PROJECT_NAME})
-
-add_library(${library_name} SHARED
+add_library(${library_name} 
     src/pose.cpp
     src/acceleration.cpp
     src/robot.cpp
@@ -36,7 +31,13 @@ add_library(${library_name} SHARED
     src/velocity.cpp
     )
 
-add_executable(test_main
+target_include_directories(
+    ${library_name} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
+    $<INSTALL_INTERFACE:include/>
+    )
+
+add_executable(${PROJECT_NAME}
     src/main.cpp
 )
 
@@ -53,15 +54,7 @@ set(dependencies
 ament_target_dependencies(${library_name}
     ${dependencies})
 
-install(TARGETS ${library_name}
-    EXPORT ${library_name}
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
-    INCLUDES DESTINATION include)
-
-install(DIRECTORY include/
-    DESTINATION include/)
+install(TARGETS minimum_jerk_trajectory_planner DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY
     DESTINATION share/${PROJECT_NAME})
@@ -77,11 +70,5 @@ if(BUILD_TESTING)
     # set(ament_cmake_cpplint_FOUND TRUE)
     ament_lint_auto_find_test_dependencies()
 endif()
-
-ament_export_include_directories(include)
-ament_export_targets(${library_name} HAS_LIBRARY_TARGET)
-ament_export_dependencies(
-    rclcpp
-)
 
 ament_package()

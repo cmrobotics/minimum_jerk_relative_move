@@ -14,16 +14,10 @@ namespace minimum_jerk
             throw "Couldn't build Robot instance, move type has to be 'r' or 'tx' or 'ty' (rotate or translate)";
         }
     }
-    Robot::~Robot()
-    {
-        if (odometry != nullptr)
-        {
-            delete odometry;
-        }
-    }
+    
     Robot::Robot(const Robot &src): path_finder_controller(src.path_finder_controller), pose(src.pose_start), pose_start(src.pose), pose_target(src.pose_target)
     {
-        char * move_type = "";
+        char * move_type = (char*)"";
         strcpy(move_type, src.move_type);
         odometry = nullptr;
     }
@@ -39,10 +33,10 @@ namespace minimum_jerk
         return *this;
     }
 
-    void Robot::generate_trajectory(double dt)
+    void Robot::generate_trajectory()
     {
         path_finder_controller.generate_trajectory(pose_start,pose_target);
-        odometry= new Trajectory(path_finder_controller.list_t, path_finder_controller.list_pose,total_time/dt);
+        odometry = std::unique_ptr<Trajectory>(new Trajectory(path_finder_controller.list_t, path_finder_controller.list_pose));
     }
     bool Robot::operator==(const Robot &r) const
     {
