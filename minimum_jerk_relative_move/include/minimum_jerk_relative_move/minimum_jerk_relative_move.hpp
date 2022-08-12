@@ -13,9 +13,9 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2/utils.h>
-#include <minimum_jerk_trajectory_planner/trajectory_planners.hpp>
-#include <minimum_jerk_trajectory_planner/pose.hpp>
-#include <minimum_jerk_trajectory_planner/robot.hpp>
+// #include <minimum_jerk_trajectory_planner/trajectory_planners.hpp>
+// #include <minimum_jerk_trajectory_planner/pose.hpp>
+// #include <minimum_jerk_trajectory_planner/robot.hpp>
 
 namespace minimum_jerk
 {
@@ -23,9 +23,9 @@ namespace minimum_jerk
     {
     public:
         using Rotation = cmr_msgs::action::Rotate;
-        using GoalHandleRotation = cmr_msgs::ServerGoalHandle<Rotate>;
+        using GoalHandleRotation = rclcpp_action::ServerGoalHandle<Rotation>;
         using Translation = cmr_msgs::action::Translate;
-        using GoalHandleTranslation = cmr_msgs::ServerGoalHandle<Translate>;
+        using GoalHandleTranslation = rclcpp_action::ServerGoalHandle<Translation>;
         explicit MinimumJerkRelativeMove(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
     private:
@@ -40,5 +40,5 @@ namespace minimum_jerk
         Pose get_current_pose();
         void rotation_callback(const std::shared_ptr<GoalHandleRotation> goal_handle);
         void translation_callback(const std::shared_ptr<GoalHandleTranslation> goal_handle);
-    }
+    };
 }
