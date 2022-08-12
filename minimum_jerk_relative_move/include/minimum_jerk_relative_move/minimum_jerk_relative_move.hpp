@@ -13,9 +13,10 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2/utils.h>
-// #include <minimum_jerk_trajectory_planner/trajectory_planners.hpp>
-// #include <minimum_jerk_trajectory_planner/pose.hpp>
-// #include <minimum_jerk_trajectory_planner/robot.hpp>
+#include <functional>
+#include <minimum_jerk_trajectory_planner/trajectory_planners.hpp>
+#include <minimum_jerk_trajectory_planner/pose.hpp>
+#include <minimum_jerk_trajectory_planner/robot.hpp>
 
 namespace minimum_jerk
 {
