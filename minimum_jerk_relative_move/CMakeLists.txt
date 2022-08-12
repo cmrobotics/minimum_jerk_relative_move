@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(minimum_jerk_trajectory_planner)
+project(minimum_jerk_relative_move)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -17,16 +17,16 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(cmr_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(minimum_jerk_trajectory_planner REQUIRED)
+find_package(tf2 REQUIRED)
 
 set(library_name "${PROJECT_NAME}_lib")
 
 add_library(${library_name} 
-    src/pose.cpp
-    src/acceleration.cpp
-    src/robot.cpp
-    src/trajectory.cpp
-    src/trajectory_planners.cpp
-    src/velocity.cpp
+src/minimum_jerk_relative_move.cpp
     )
 
 target_include_directories(
@@ -36,21 +36,26 @@ target_include_directories(
     )
 
 add_executable(${PROJECT_NAME}
-    src/main.cpp
+src/minimum_jerk_relative_move_node.cpp
 )
 
-target_link_libraries(minimum_jerk_trajectory_planner
-  minimum_jerk_trajectory_planner_lib
+target_link_libraries(minimum_jerk_relative_move
+  minimum_jerk_relative_move_lib
 )
 
 set(dependencies
     rclcpp
+    std_msgs
+    cmr_msgs
+    geometry_msgs
+    minimum_jerk_trajectory_planner
+    tf2
 )
 
 ament_target_dependencies(${library_name}
     ${dependencies})
 
-install(TARGETS minimum_jerk_trajectory_planner DESTINATION lib/${PROJECT_NAME})
+install(TARGETS minimum_jerk_relative_move DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY
     DESTINATION share/${PROJECT_NAME})
