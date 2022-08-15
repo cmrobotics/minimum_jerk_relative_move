@@ -3,47 +3,88 @@
 namespace minimum_jerk
 {
 
-    Robot::Robot(char *name, double total_time, TrajectoryPlanner &path_finder_controller, Pose& pose_start, Pose& pose_target, char *move_type) : name(name), path_finder_controller(path_finder_controller), total_time(total_time), pose(pose_start), pose_start(pose_start), pose_target(pose_target), move_type(move_type)
+    Robot::Robot(std::string name, double total_time, const TrajectoryPlanner &path_finder_controller, const Pose &pose_start, const Pose &pose_target, std::string move_type) : name_(name), total_time_(total_time), move_type_(move_type)
     {
-        current_step = 0;
-        is_at_target = false;
-        odometry = nullptr;
+        this->path_finder_controller_ = std::make_unique<TrajectoryPlanner>(path_finder_controller);
+        this->pose_ = std::make_unique<Pose>(pose_start);
+        this->pose_start_ = std::make_unique<Pose>(pose_start);
+        this->pose_target_ = std::make_unique<Pose>(pose_target);
+        current_step_ = 0;
+        is_at_target_ = false;
 
-        if (strcmp(move_type, "r") && strcmp(move_type, "tx") && strcmp(move_type, "ty"))
+        if (move_type == "r" && move_type == "tx" && move_type == "ty")
         {
             throw "Couldn't build Robot instance, move type has to be 'r' or 'tx' or 'ty' (rotate or translate)";
         }
     }
-    
-    Robot::Robot(const Robot &src): path_finder_controller(src.path_finder_controller), pose(src.pose_start), pose_start(src.pose), pose_target(src.pose_target)
+
+    Robot::Robot(const Robot &src) : name_(src.get_name()), total_time_(src.get_total_time()), current_step_(src.get_current_step()), is_at_target_(src.get_is_at_target()), move_type_(src.get_move_type())
     {
-        char * move_type = (char*)"";
-        strcpy(move_type, src.move_type);
-        odometry = nullptr;
+        this->path_finder_controller_ = std::make_unique<TrajectoryPlanner>(src.get_path_finder_controller());
+        this->pose_ = std::make_unique<Pose>(src.get_pose());
+        this->pose_start_ = std::make_unique<Pose>(src.get_pose_start());
+        this->pose_target_ = std::make_unique<Pose>(src.get_pose_target());
+        this->odometry_ = std::make_unique<Trajectory>(src.get_odometry());
     }
     Robot &Robot::operator=(const Robot &src)
     {
-        strcpy(move_type, src.move_type);
-        name = name;
-        total_time = total_time;
-        path_finder_controller = path_finder_controller;
-        pose_start = pose_start;
-        pose_target = pose_start;
-        move_type = move_type;
+        name_ = src.get_name();
+        total_time_ = src.get_total_time();
+        current_step_ = src.get_current_step();
+        is_at_target_ = src.get_is_at_target();
+        move_type_ = src.get_move_type();
+        this->path_finder_controller_ = std::make_unique<TrajectoryPlanner>(src.get_path_finder_controller());
+        this->pose_ = std::make_unique<Pose>(src.get_pose());
+        this->pose_start_ = std::make_unique<Pose>(src.get_pose_start());
+        this->pose_target_ = std::make_unique<Pose>(src.get_pose_target());
+        this->odometry_ = std::make_unique<Trajectory>(src.get_odometry());
         return *this;
     }
 
     void Robot::generate_trajectory()
     {
-        path_finder_controller.generate_trajectory(pose_start,pose_target);
-        odometry = std::unique_ptr<Trajectory>(new Trajectory(path_finder_controller.list_t, path_finder_controller.list_pose));
+        path_finder_controller_->generate_trajectory(this->get_pose_start(), this->get_pose_target());
+        odometry_ = std::make_unique<Trajectory>(path_finder_controller_->get_list_timestamps(), path_finder_controller_->get_list_poses());
     }
     bool Robot::operator==(const Robot &r) const
     {
-        return name == r.name && pose_start.x == r.pose_start.x && pose_start.y == r.pose_start.y && pose_start.theta == r.pose_start.theta;
+        return name_ == r.get_name() && pose_start_->get_x() == r.get_pose_start().get_x() && pose_start_->get_y() == r.get_pose_start().get_y() && pose_start_->get_theta() == r.get_pose_start().get_theta();
     }
     bool Robot::operator!=(const Robot &r) const
     {
         return !(*this == r);
+    }
+    Pose Robot::get_pose() const
+    {
+        return Pose(*pose_);
+    }
+    Pose Robot::get_pose_start() const
+    {
+        return Pose(*pose_start_);
+    }
+    Pose Robot::get_pose_target() const
+    {
+        return Pose(*pose_target_);
+    }
+    std::string Robot::get_move_type() const {
+        return move_type_;
+    }
+    TrajectoryPlanner Robot::get_path_finder_controller() const {
+        return TrajectoryPlanner(*path_finder_controller_);
+    }
+    std::string Robot::get_name() const {
+        return name_;
+    }
+    double Robot::get_total_time() const {
+        return total_time_;
+    }
+    int Robot::get_current_step() const {
+        return current_step_;
+    }
+    bool Robot::get_is_at_target() const {
+        return is_at_target_;
+    }
+    Trajectory Robot::get_odometry() const {
+        return Trajectory(*odometry_);
     }
 }

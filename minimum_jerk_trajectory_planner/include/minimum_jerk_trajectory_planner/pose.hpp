@@ -5,10 +5,16 @@ namespace minimum_jerk
     class Pose
     {
     public:
-        double x;
-        double y;
-        double theta;
-        Pose(double ax = 0, double ay = 0, double atheta = 0);
+        double get_x() const;
+        double get_y() const;
+        double get_theta() const;
+        Pose(double px = 0, double py = 0, double ptheta = 0);
         Pose operator-(Pose other);
+        bool operator==(Pose other);
+
+    private:
+        double x_;
+        double y_;
+        double theta_;
     };
 }
