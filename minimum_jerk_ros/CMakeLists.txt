@@ -22,6 +22,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(minimum_jerk_trajectory_planner REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(nav2_util REQUIRED)
+find_package(cmr_geometry_utils REQUIRED)
 
 include_directories(include)
 
@@ -37,6 +38,7 @@ ament_target_dependencies(${PROJECT_NAME}_lib
   minimum_jerk_trajectory_planner
   tf2
   nav2_util
+  cmr_geometry_utils
 )
 
 add_executable(${PROJECT_NAME} 
@@ -68,6 +70,7 @@ ament_export_dependencies(
   minimum_jerk_trajectory_planner
   tf2
   nav2_util
+  cmr_geometry_utils
 )
 
 ament_package()

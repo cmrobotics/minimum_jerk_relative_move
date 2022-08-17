@@ -6,6 +6,7 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp/qos.hpp"
 #include <chrono>
+#include <cmr_geometry_utils/basic_geometry_utils.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
 #include <cmr_msgs/action/translate.hpp>
@@ -15,6 +16,7 @@
 #include <tf2/utils.h>
 #include <nav2_util/simple_action_server.hpp>
 #include <functional>
+#include <unistd.h>
 #include "minimum_jerk_trajectory_planner/pose.hpp"
 #include "minimum_jerk_trajectory_planner/trajectory_planners.hpp"
 #include "minimum_jerk_trajectory_planner/robot.hpp"
@@ -31,8 +33,8 @@ namespace minimum_jerk
         explicit MinimumJerkRos(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
 
     private:
-        minimum_jerk::Pose init_pose;
-        minimum_jerk::Pose current_pose;
+        minimum_jerk::Pose init_pose_;
+        minimum_jerk::Pose current_pose_;
         std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::Twist>> publisher_;
         using ActionServerRot = nav2_util::SimpleActionServer<Rotation>;
         std::shared_ptr<ActionServerRot> action_rotation_server_;
