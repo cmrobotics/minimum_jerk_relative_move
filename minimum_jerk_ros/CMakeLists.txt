@@ -23,6 +23,8 @@ find_package(minimum_jerk_trajectory_planner REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(nav2_util REQUIRED)
 find_package(cmr_geometry_utils REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
+find_package(lifecycle_msgs REQUIRED)
 
 include_directories(include)
 
@@ -39,6 +41,8 @@ ament_target_dependencies(${PROJECT_NAME}_lib
   tf2
   nav2_util
   cmr_geometry_utils
+  rclcpp_lifecycle
+  lifecycle_msgs
 )
 
 add_executable(${PROJECT_NAME} 
@@ -71,6 +75,8 @@ ament_export_dependencies(
   tf2
   nav2_util
   cmr_geometry_utils
+  rclcpp_lifecycle
+  lifecycle_msgs
 )
 
 ament_package()
