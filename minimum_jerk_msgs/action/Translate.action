@@ -1,0 +1,11 @@
+#goal definition
+float32 target_x
+float32 min_velocity
+bool enable_collision_check
+float32 xy_goal_tolerance
+bool enable_data_save
+---
+#result definition
+builtin_interfaces/Duration total_elapsed_time
+---
+float32 distance_traveled

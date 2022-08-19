@@ -11,8 +11,8 @@
 #include <cmr_geometry_utils/basic_geometry_utils.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
-#include <cmr_msgs/action/translate.hpp>
-#include <cmr_msgs/action/rotate.hpp>
+#include <minimum_jerk_msgs/action/translate.hpp>
+#include <minimum_jerk_msgs/action/rotate.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2/utils.h>
@@ -28,8 +28,8 @@ namespace minimum_jerk
     class MinimumJerkRos : public rclcpp_lifecycle::LifecycleNode
     {
     public:
-        using Rotation = cmr_msgs::action::Rotate;
-        using Translation = cmr_msgs::action::Translate;
+        using Rotation = minimum_jerk_msgs::action::Rotate;
+        using Translation = minimum_jerk_msgs::action::Translate;
 
         explicit MinimumJerkRos(bool intra_process_comms = false);
 

@@ -3,7 +3,7 @@
 
 namespace minimum_jerk
 {
-    MinimumJerkRos::MinimumJerkRos(bool intra_process_comms) : rclcpp_lifecycle::LifecycleNode("minimum_jerk_action_server", rclcpp::NodeOptions().use_intra_process_comms(intra_process_comms))
+    MinimumJerkRos::MinimumJerkRos(bool intra_process_comms) : rclcpp_lifecycle::LifecycleNode("minimum_jerk_ros", rclcpp::NodeOptions().use_intra_process_comms(intra_process_comms))
     {
         RCLCPP_INFO(this->get_logger(), "on_initialize()...");
         this->declare_parameter<double>("transform_tolerance", 1.0);
@@ -73,9 +73,8 @@ namespace minimum_jerk
     void MinimumJerkRos::rotation_callback()
     {
         auto goal = action_rotation_server_->get_current_goal();
-        RCLCPP_INFO(this->get_logger(), "Rotation: %f rad, min_vel: %f, max_vel: %f, acc_lim: %f, collision_check: %i, yaw_goal_tolerance: %f",
-                    goal->target_yaw, goal->min_rotational_vel, goal->max_rotational_vel, goal->rotational_acc_lim, goal->enable_collision_check,
-                    goal->yaw_goal_tolerance);
+        RCLCPP_INFO(this->get_logger(), "Rotation: %f rad, min_vel: %f, collision_check: %i, yaw_goal_tolerance: %f, data_save: %i",
+                    goal->target_yaw, goal->min_rotational_vel, goal->enable_collision_check, goal->yaw_goal_tolerance, goal->enable_data_save);
 
         if (goal->target_yaw < -M_PI || goal->target_yaw > M_PI)
         {
@@ -108,15 +107,21 @@ namespace minimum_jerk
         if (goal->yaw_goal_tolerance > 0)
             yaw_tolerance = goal->yaw_goal_tolerance;
 
-        FilFile::fil_file_rotation<Pose>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_poses(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/poses.txt");
-        FilFile::fil_file_rotation<Velocity>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_velocities(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/velocities.txt");
-        FilFile::fil_file_rotation<Acceleration>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_accelerations(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/accelerations.txt");
-
+        if (goal->enable_data_save)
+        {
+            FilFile::fil_file_rotation<Pose>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_poses(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/poses.txt");
+            FilFile::fil_file_rotation<Velocity>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_velocities(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/velocities.txt");
+            FilFile::fil_file_rotation<Acceleration>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_accelerations(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/accelerations.txt");
+        }
         int i = 0;
 
-        int fd_for_times = FilFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/for_times.txt");
-        int fd_r_s_times = FilFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/r_s_times.txt");
-
+        int fd_for_times;
+        int fd_r_s_times;
+        if (goal->enable_data_save)
+        {
+            fd_for_times = FilFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/for_times.txt");
+            fd_r_s_times = FilFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/r_s_times.txt");
+        }
         auto t_init_for = get_clock()->now();
         for (auto vel : robot.get_odometry().get_velocities())
         {
@@ -162,18 +167,21 @@ namespace minimum_jerk
             }
 
             action_rotation_server_->publish_feedback(rotation_feedback);
-
-            FilFile::fil_one_ligne(fd_for_times, i, double((get_clock()->now() - t_begin_for).nanoseconds()) * 1e-9);
-            FilFile::fil_one_ligne(fd_r_s_times, i, double((get_clock()->now() - t_init_for).nanoseconds()) * 1e-9, robot.get_odometry().get_timestamps().at(i));
+            if (goal->enable_data_save)
+            {
+                FilFile::fil_one_ligne(fd_for_times, i, double((get_clock()->now() - t_begin_for).nanoseconds()) * 1e-9);
+                FilFile::fil_one_ligne(fd_r_s_times, i, double((get_clock()->now() - t_init_for).nanoseconds()) * 1e-9, robot.get_odometry().get_timestamps().at(i));
+            }
             i++;
         }
 
         angular_vel.angular.z = 0.0;
         this->publisher_->publish(angular_vel);
-
-        FilFile::close_file(fd_for_times);
-        FilFile::close_file(fd_r_s_times);
-
+        if (goal->enable_data_save)
+        {
+            FilFile::close_file(fd_for_times);
+            FilFile::close_file(fd_r_s_times);
+        }
         try
         {
             this->current_pose_ = this->get_current_pose();
@@ -197,8 +205,8 @@ namespace minimum_jerk
     void MinimumJerkRos::translation_callback()
     {
         auto goal = action_translation_server_->get_current_goal();
-        RCLCPP_INFO(this->get_logger(), "Translation: %f m, speed: %f, collision_check: %i, xy_goal_tolerance: %f",
-                    goal->target.x, goal->speed, goal->enable_collision_check, goal->xy_goal_tolerance);
+        RCLCPP_INFO(this->get_logger(), "Translation: %f m, min_velocity: %f, collision_check: %i, xy_goal_tolerance: %f, data_save: %i",
+                    goal->target_x, goal->min_velocity, goal->enable_collision_check, goal->xy_goal_tolerance, goal->enable_data_save);
         auto t_init = get_clock()->now();
         try
         {
@@ -209,10 +217,10 @@ namespace minimum_jerk
             action_translation_server_->terminate_current();
             return;
         }
-        Pose pose_target = Pose(goal->target.x, 0, 0);
+        Pose pose_target = Pose(goal->target_x, 0, 0);
         Pose pose_start = Pose(0, 0, 0);
         double dist = abs(pose_target.get_x());
-        double max_total = dist / goal->speed;
+        double max_total = dist / goal->min_velocity;
         TrajectoryPlanner controller = TrajectoryPlanner(max_total, 1 / this->control_frequency_);
         Robot robot = Robot("Robot", max_total, controller, pose_start, pose_target, "tx");
         robot.generate_trajectory();
@@ -223,16 +231,21 @@ namespace minimum_jerk
         double xy_tolerance = 0.015;
         if (goal->xy_goal_tolerance > 0)
             xy_tolerance = goal->xy_goal_tolerance;
-
-        FilFile::fil_file_translation<Pose>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_poses(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/poses.txt");
-        FilFile::fil_file_translation<Velocity>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_velocities(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/velocities.txt");
-        FilFile::fil_file_translation<Acceleration>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_accelerations(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/accelerations.txt");
-
+        if (goal->enable_data_save)
+        {
+            FilFile::fil_file_translation<Pose>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_poses(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/poses.txt");
+            FilFile::fil_file_translation<Velocity>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_velocities(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/velocities.txt");
+            FilFile::fil_file_translation<Acceleration>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_accelerations(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/accelerations.txt");
+        }
         int i = 0;
 
-        int fd_for_times = FilFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/for_times.txt");
-        int fd_r_s_times = FilFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/r_s_times.txt");
-
+        int fd_for_times;
+        int fd_r_s_times;
+        if (goal->enable_data_save)
+        {
+            fd_for_times = FilFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/for_times.txt");
+            fd_r_s_times = FilFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/r_s_times.txt");
+        }
         auto t_init_for = get_clock()->now();
         for (auto vel : robot.get_odometry().get_velocities())
         {
@@ -272,7 +285,7 @@ namespace minimum_jerk
                 translation_feedback->distance_traveled = abs(cmr_geometry_utils::compute_distance_2d(start, target));
             }
 
-            if (abs(translation_feedback->distance_traveled - abs(goal->target.x)) <= xy_tolerance)
+            if (abs(translation_feedback->distance_traveled - abs(goal->target_x)) <= xy_tolerance)
             {
                 linear_vel.linear.x = 0.0;
                 this->publisher_->publish(linear_vel);
@@ -280,17 +293,20 @@ namespace minimum_jerk
             }
 
             action_translation_server_->publish_feedback(translation_feedback);
-
-            FilFile::fil_one_ligne(fd_for_times, i, double((get_clock()->now() - t_begin_for).nanoseconds()) * 1e-9);
-            FilFile::fil_one_ligne(fd_r_s_times, i, double((get_clock()->now() - t_init_for).nanoseconds()) * 1e-9, robot.get_odometry().get_timestamps().at(i));
+            if (goal->enable_data_save)
+            {
+                FilFile::fil_one_ligne(fd_for_times, i, double((get_clock()->now() - t_begin_for).nanoseconds()) * 1e-9);
+                FilFile::fil_one_ligne(fd_r_s_times, i, double((get_clock()->now() - t_init_for).nanoseconds()) * 1e-9, robot.get_odometry().get_timestamps().at(i));
+            }
             i++;
         }
         linear_vel.linear.x = 0.0;
         this->publisher_->publish(linear_vel);
-
-        FilFile::close_file(fd_for_times);
-        FilFile::close_file(fd_r_s_times);
-
+        if (goal->enable_data_save)
+        {
+            FilFile::close_file(fd_for_times);
+            FilFile::close_file(fd_r_s_times);
+        }
         try
         {
             this->current_pose_ = this->get_current_pose();
@@ -312,8 +328,8 @@ namespace minimum_jerk
 
         auto res = std::make_shared<Translation::Result>();
         res->total_elapsed_time.nanosec = int((get_clock()->now() - t_init).nanoseconds());
-        RCLCPP_INFO(this->get_logger(), "distance traveled %f, error %f\n", translation_feedback->distance_traveled, abs(translation_feedback->distance_traveled - abs(goal->target.x)));
-        (abs(translation_feedback->distance_traveled - abs(goal->target.x)) <= xy_tolerance) ? action_translation_server_->succeeded_current(res) : action_rotation_server_->terminate_current();
+        RCLCPP_INFO(this->get_logger(), "distance traveled %f, error %f\n", translation_feedback->distance_traveled, abs(translation_feedback->distance_traveled - abs(goal->target_x)));
+        (abs(translation_feedback->distance_traveled - abs(goal->target_x)) <= xy_tolerance) ? action_translation_server_->succeeded_current(res) : action_rotation_server_->terminate_current();
     }
 
     minimum_jerk::Pose MinimumJerkRos::get_current_pose()
@@ -334,4 +350,5 @@ namespace minimum_jerk
         }
         return pose;
     }
+
 }

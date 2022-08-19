@@ -17,7 +17,7 @@ endif()
 
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(cmr_msgs REQUIRED)
+find_package(minimum_jerk_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(minimum_jerk_trajectory_planner REQUIRED)
 find_package(tf2 REQUIRED)
@@ -35,7 +35,7 @@ add_library(${PROJECT_NAME}_lib SHARED
 ament_target_dependencies(${PROJECT_NAME}_lib
   rclcpp
   std_msgs
-  cmr_msgs
+  minimum_jerk_msgs
   geometry_msgs
   minimum_jerk_trajectory_planner
   tf2
@@ -64,12 +64,14 @@ install(TARGETS ${PROJECT_NAME}
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
+install(DIRECTORY launch params DESTINATION share/${PROJECT_NAME})
+
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME}_lib)
 ament_export_dependencies(
   rclcpp
   std_msgs
-  cmr_msgs
+  minimum_jerk_msgs
   geometry_msgs
   minimum_jerk_trajectory_planner
   tf2

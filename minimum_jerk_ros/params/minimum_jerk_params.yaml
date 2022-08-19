@@ -1,0 +1,5 @@
+minimum_jerk_ros:
+  ros__parameters:
+    use_sim_time: True
+    control_frequency: 10.0
+    transform_tolerance: 1.0
