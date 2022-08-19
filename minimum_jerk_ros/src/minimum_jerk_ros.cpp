@@ -1,8 +1,5 @@
 #include "minimum_jerk_ros/minimum_jerk_ros.hpp"
 #include "minimum_jerk_ros/fill_file.hpp"
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
 
 namespace minimum_jerk
 {
@@ -75,8 +72,11 @@ namespace minimum_jerk
 
     void MinimumJerkRos::rotation_callback()
     {
-        RCLCPP_INFO(this->get_logger(), "Rotation");
         auto goal = action_rotation_server_->get_current_goal();
+        RCLCPP_INFO(this->get_logger(), "Rotation: %f rad, min_vel: %f, max_vel: %f, acc_lim: %f, collision_check: %i, yaw_goal_tolerance: %f",
+                    goal->target_yaw, goal->min_rotational_vel, goal->max_rotational_vel, goal->rotational_acc_lim, goal->enable_collision_check,
+                    goal->yaw_goal_tolerance);
+
         if (goal->target_yaw < -M_PI || goal->target_yaw > M_PI)
         {
             RCLCPP_WARN(this->get_logger(), "Target yaw need to be between -pi and pi");
@@ -190,14 +190,15 @@ namespace minimum_jerk
 
         auto res = std::make_shared<Rotation::Result>();
         res->total_elapsed_time.nanosec = int((get_clock()->now() - t_init).nanoseconds());
-        printf("distance traveled %f, error %f\n", rotation_feedback->angular_distance_traveled, abs(rotation_feedback->angular_distance_traveled - abs(goal->target_yaw)));
+        RCLCPP_INFO(this->get_logger(), "distance traveled %f, error %f\n", rotation_feedback->angular_distance_traveled, abs(rotation_feedback->angular_distance_traveled - abs(goal->target_yaw)));
         (abs(rotation_feedback->angular_distance_traveled - abs(goal->target_yaw)) <= yaw_tolerance) ? action_rotation_server_->succeeded_current(res) : action_rotation_server_->terminate_current();
     }
 
     void MinimumJerkRos::translation_callback()
     {
-        RCLCPP_INFO(this->get_logger(), "Translation");
         auto goal = action_translation_server_->get_current_goal();
+        RCLCPP_INFO(this->get_logger(), "Translation: %f m, speed: %f, collision_check: %i, xy_goal_tolerance: %f",
+                    goal->target.x, goal->speed, goal->enable_collision_check, goal->xy_goal_tolerance);
         auto t_init = get_clock()->now();
         try
         {
@@ -311,7 +312,7 @@ namespace minimum_jerk
 
         auto res = std::make_shared<Translation::Result>();
         res->total_elapsed_time.nanosec = int((get_clock()->now() - t_init).nanoseconds());
-        printf("distance traveled %f, error %f\n", translation_feedback->distance_traveled, abs(translation_feedback->distance_traveled - abs(goal->target.x)));
+        RCLCPP_INFO(this->get_logger(), "distance traveled %f, error %f\n", translation_feedback->distance_traveled, abs(translation_feedback->distance_traveled - abs(goal->target.x)));
         (abs(translation_feedback->distance_traveled - abs(goal->target.x)) <= xy_tolerance) ? action_translation_server_->succeeded_current(res) : action_rotation_server_->terminate_current();
     }
 
