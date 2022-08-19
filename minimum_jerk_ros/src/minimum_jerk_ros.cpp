@@ -1,4 +1,5 @@
 #include "minimum_jerk_ros/minimum_jerk_ros.hpp"
+#include "minimum_jerk_ros/fill_file.hpp"
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -107,40 +108,14 @@ namespace minimum_jerk
         if (goal->yaw_goal_tolerance > 0)
             yaw_tolerance = goal->yaw_goal_tolerance;
 
-        int dup_stdout = dup(STDOUT_FILENO);
-        int fd_poses = creat("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/poses.txt", O_CREAT | O_WRONLY | O_TRUNC);
-        int fd_velocities = creat("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/velocities.txt", O_CREAT | O_WRONLY | O_TRUNC);
-        int fd_accelerations = creat("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/accelerations.txt", O_CREAT | O_WRONLY | O_TRUNC);
-        dup2(fd_poses, 1);
+        FilFile::fil_file_rotation<Pose>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_poses(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/poses.txt");
+        FilFile::fil_file_rotation<Velocity>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_velocities(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/velocities.txt");
+        FilFile::fil_file_rotation<Acceleration>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_accelerations(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/accelerations.txt");
+
         int i = 0;
-        for (Pose pose : robot.get_odometry().get_poses())
-        {
-            printf("%f %f\n", robot.get_odometry().get_timestamps().at(i), pose.get_theta());
-            i++;
-        }
-        dup2(fd_velocities, 1);
-        i = 0;
-        for (Velocity vel : robot.get_odometry().get_velocities())
-        {
-            printf("%f %f\n", robot.get_odometry().get_timestamps().at(i), vel.get_theta());
-            i++;
-        }
-        dup2(fd_accelerations, 1);
-        i = 0;
-        for (Acceleration acc : robot.get_odometry().get_accelerations())
-        {
-            printf("%f %f\n", robot.get_odometry().get_timestamps().at(i), acc.get_theta());
-            i++;
-        }
-        dup2(dup_stdout, 1);
-        close(fd_poses);
-        close(fd_velocities);
-        close(fd_accelerations);
 
-        i = 0;
-
-        int fd_for_times = creat("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/for_times.txt", O_CREAT | O_WRONLY | O_TRUNC);
-        int fd_r_s_times = creat("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/r_s_times.txt", O_CREAT | O_WRONLY | O_TRUNC);
+        int fd_for_times = FilFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/for_times.txt");
+        int fd_r_s_times = FilFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/r_s_times.txt");
 
         auto t_init_for = get_clock()->now();
         for (auto vel : robot.get_odometry().get_velocities())
@@ -188,20 +163,16 @@ namespace minimum_jerk
 
             action_rotation_server_->publish_feedback(rotation_feedback);
 
-            dup2(fd_for_times, 1);
-            printf("%i %f\n", i, double((get_clock()->now() - t_begin_for).nanoseconds()) * 1e-9);
-            dup2(fd_r_s_times, 1);
-            printf("%i %f %f\n", i, double((get_clock()->now() - t_init_for).nanoseconds()) * 1e-9, robot.get_odometry().get_timestamps().at(i));
-            dup2(dup_stdout, 1);
+            FilFile::fil_one_ligne(fd_for_times, i, double((get_clock()->now() - t_begin_for).nanoseconds()) * 1e-9);
+            FilFile::fil_one_ligne(fd_r_s_times, i, double((get_clock()->now() - t_init_for).nanoseconds()) * 1e-9, robot.get_odometry().get_timestamps().at(i));
             i++;
         }
 
         angular_vel.angular.z = 0.0;
         this->publisher_->publish(angular_vel);
 
-        dup2(dup_stdout, 1);
-        close(fd_for_times);
-        close(fd_r_s_times);
+        FilFile::close_file(fd_for_times);
+        FilFile::close_file(fd_r_s_times);
 
         try
         {
@@ -216,7 +187,6 @@ namespace minimum_jerk
         rotation_feedback->angular_distance_traveled = abs(this->current_pose_.get_theta() - this->init_pose_.get_theta());
         rotation_feedback->angular_distance_traveled -= 2 * M_PI * std::floor((rotation_feedback->angular_distance_traveled + M_PI) / (2 * M_PI));
         rotation_feedback->angular_distance_traveled = abs(rotation_feedback->angular_distance_traveled);
-
 
         auto res = std::make_shared<Rotation::Result>();
         res->total_elapsed_time.nanosec = int((get_clock()->now() - t_init).nanoseconds());
@@ -253,40 +223,14 @@ namespace minimum_jerk
         if (goal->xy_goal_tolerance > 0)
             xy_tolerance = goal->xy_goal_tolerance;
 
-        int dup_stdout = dup(STDOUT_FILENO);
-        int fd_poses = creat("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/poses.txt", O_CREAT | O_WRONLY | O_TRUNC);
-        int fd_velocities = creat("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/velocities.txt", O_CREAT | O_WRONLY | O_TRUNC);
-        int fd_accelerations = creat("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/accelerations.txt", O_CREAT | O_WRONLY | O_TRUNC);
-        dup2(fd_poses, 1);
+        FilFile::fil_file_translation<Pose>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_poses(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/poses.txt");
+        FilFile::fil_file_translation<Velocity>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_velocities(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/velocities.txt");
+        FilFile::fil_file_translation<Acceleration>(robot.get_odometry().get_timestamps(), robot.get_odometry().get_accelerations(), "./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/accelerations.txt");
+
         int i = 0;
-        for (Pose pose : robot.get_odometry().get_poses())
-        {
-            printf("%f %f\n", robot.get_odometry().get_timestamps().at(i), pose.get_x());
-            i++;
-        }
-        dup2(fd_velocities, 1);
-        i = 0;
-        for (Velocity vel : robot.get_odometry().get_velocities())
-        {
-            printf("%f %f\n", robot.get_odometry().get_timestamps().at(i), vel.get_x());
-            i++;
-        }
-        dup2(fd_accelerations, 1);
-        i = 0;
-        for (Acceleration acc : robot.get_odometry().get_accelerations())
-        {
-            printf("%f %f\n", robot.get_odometry().get_timestamps().at(i), acc.get_x());
-            i++;
-        }
-        dup2(dup_stdout, 1);
-        close(fd_poses);
-        close(fd_velocities);
-        close(fd_accelerations);
 
-        i = 0;
-
-        int fd_for_times = creat("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/for_times.txt", O_CREAT | O_WRONLY | O_TRUNC);
-        int fd_r_s_times = creat("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/r_s_times.txt", O_CREAT | O_WRONLY | O_TRUNC);
+        int fd_for_times = FilFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/for_times.txt");
+        int fd_r_s_times = FilFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/r_s_times.txt");
 
         auto t_init_for = get_clock()->now();
         for (auto vel : robot.get_odometry().get_velocities())
@@ -335,19 +279,16 @@ namespace minimum_jerk
             }
 
             action_translation_server_->publish_feedback(translation_feedback);
-            dup2(fd_for_times, 1);
-            printf("%i %f\n", i, double((get_clock()->now() - t_begin_for).nanoseconds()) * 1e-9);
-            dup2(fd_r_s_times, 1);
-            printf("%i %f %f\n", i, double((get_clock()->now() - t_init_for).nanoseconds()) * 1e-9, robot.get_odometry().get_timestamps().at(i));
-            dup2(dup_stdout, 1);
+
+            FilFile::fil_one_ligne(fd_for_times, i, double((get_clock()->now() - t_begin_for).nanoseconds()) * 1e-9);
+            FilFile::fil_one_ligne(fd_r_s_times, i, double((get_clock()->now() - t_init_for).nanoseconds()) * 1e-9, robot.get_odometry().get_timestamps().at(i));
             i++;
         }
         linear_vel.linear.x = 0.0;
         this->publisher_->publish(linear_vel);
 
-        dup2(dup_stdout, 1);
-        close(fd_for_times);
-        close(fd_r_s_times);
+        FilFile::close_file(fd_for_times);
+        FilFile::close_file(fd_r_s_times);
 
         try
         {
@@ -367,7 +308,6 @@ namespace minimum_jerk
         target.y = this->current_pose_.get_y();
         target.z = 0;
         translation_feedback->distance_traveled = abs(cmr_geometry_utils::compute_distance_2d(start, target));
-
 
         auto res = std::make_shared<Translation::Result>();
         res->total_elapsed_time.nanosec = int((get_clock()->now() - t_init).nanoseconds());

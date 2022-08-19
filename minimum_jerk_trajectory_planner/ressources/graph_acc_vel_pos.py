@@ -7,7 +7,7 @@ t_velocities = []
 accelerations = []
 t_accelerations = []
   
-f_poses = open('poses_rot.txt','r')
+f_poses = open('poses.txt','r')
 for row_poses in f_poses:
     if not row_poses:
         continue
@@ -20,7 +20,7 @@ plt.plot(t_poses, poses)
 plt.title('Poses', fontsize = 20)
 plt.legend()
 
-f_velocities = open('velocities_rot.txt','r')
+f_velocities = open('velocities.txt','r')
 for row_velocities in f_velocities:
     if not row_velocities:
         continue
@@ -34,7 +34,7 @@ plt.title('Velocities', fontsize = 20)
 plt.legend()
 
 plt.figure(3)
-f_accelerations = open('accelerations_rot.txt','r')
+f_accelerations = open('accelerations.txt','r')
 for row_acceleration in f_accelerations:
     if not row_acceleration:
         continue
