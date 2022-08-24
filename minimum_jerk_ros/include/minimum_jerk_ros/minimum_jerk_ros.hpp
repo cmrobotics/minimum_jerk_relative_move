@@ -16,7 +16,11 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2/utils.h>
+#include <nav_msgs/msg/path.hpp>
 #include <nav2_util/simple_action_server.hpp>
+#include <cmr_msgs/srv/is_collision_free.hpp>
+#include <cmr_geometry_utils/transforms_utils.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 #include <functional>
 #include <unistd.h>
 #include "minimum_jerk_trajectory_planner/pose.hpp"
@@ -50,14 +54,42 @@ namespace minimum_jerk
     private:
         minimum_jerk::Pose init_pose_;
         minimum_jerk::Pose current_pose_;
+        double idle_timeout_;
+        double obstacle_lookahead_distance_;
+        double scaled_obstacle_lookahead_distance_;
+        double robot_radius_;
+        double transform_tolerance_;
+        double control_frequency_;
+        bool debug_trajectory_;
+        
         std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::Twist>> publisher_;
+
+        rclcpp::Node::SharedPtr collision_client_node_;
+        rclcpp::Client<cmr_msgs::srv::IsCollisionFree>::SharedPtr collision_srv_client_;
+
+        std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>> trajectory_pub_;
+        std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>> goal_pose_pub_;
+        std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::Marker>> obstacles_marker_pub_; //!< Publisher for visualization markers
 
         std::shared_ptr<tf2_ros::Buffer> buffer_;
         std::shared_ptr<tf2_ros::TransformListener> listener_;
 
-        minimum_jerk::Pose get_current_pose();
+        minimum_jerk::Pose get_current_pose_();
+        bool is_obstacle_on_path_(std::vector<geometry_msgs::msg::PoseStamped> path);
+        bool is_collision_free_(const geometry_msgs::msg::PoseStamped &pose);
+        std::size_t get_rank_of_closest_pose_in_path_(const geometry_msgs::msg::PoseStamped &pose, std::vector<geometry_msgs::msg::PoseStamped> path);
+        std::vector<geometry_msgs::msg::PoseStamped> convert_poses_to_posestampeds_(std::vector<minimum_jerk::Pose> poses);
+        geometry_msgs::msg::Quaternion to_quaternion_(double yaw, double pitch, double roll);
+        bool show_trajectory_(std::vector<geometry_msgs::msg::PoseStamped> poses);
 
-        double transform_tolerance_;
-        double control_frequency_;
+        Trajectory compute_translation_velocities_(const std::shared_ptr<const minimum_jerk_msgs::action::Translate::Goal> &goal);
+        bool check_translation_collision_(std::vector<geometry_msgs::msg::PoseStamped> poses, geometry_msgs::msg::Twist linear_vel);
+        double compute_distance_();
+        void stop_translation_(geometry_msgs::msg::Twist linear_vel);
+
+        Trajectory compute_rotation_velocities_(const std::shared_ptr<const minimum_jerk_msgs::action::Rotate::Goal> &goal);
+        bool check_rotation_collision_(std::vector<geometry_msgs::msg::PoseStamped> poses, geometry_msgs::msg::Twist angular_vel);
+        double compute_angle_();
+        void stop_rotation_(geometry_msgs::msg::Twist angular_vel);
     };
 }

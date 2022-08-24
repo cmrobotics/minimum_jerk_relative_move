@@ -23,7 +23,6 @@ def generate_launch_description():
     namespace = LaunchConfiguration('namespace',			default='')
     params_file = LaunchConfiguration(
         'params_file',		default=minimum_jerk_ros_params)
-    use_sim_time_arg = DeclareLaunchArgument("use_sim_time")
     use_sim_time = LaunchConfiguration("use_sim_time")
 
     param_substitutions = {
@@ -64,7 +63,6 @@ def generate_launch_description():
     )
 
     ld = LaunchDescription()
-    ld.add_action(use_sim_time_arg)
     ld.add_action(minimum_jerk_node)
     ld.add_action(minimum_jerk_manager)
 

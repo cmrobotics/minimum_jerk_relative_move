@@ -17,6 +17,7 @@ endif()
 
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(cmr_msgs REQUIRED)
 find_package(minimum_jerk_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(minimum_jerk_trajectory_planner REQUIRED)
@@ -25,6 +26,8 @@ find_package(nav2_util REQUIRED)
 find_package(cmr_geometry_utils REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 
 include_directories(include)
 
@@ -35,6 +38,8 @@ add_library(${PROJECT_NAME}_lib SHARED
 ament_target_dependencies(${PROJECT_NAME}_lib
   rclcpp
   std_msgs
+  cmr_msgs
+  nav_msgs
   minimum_jerk_msgs
   geometry_msgs
   minimum_jerk_trajectory_planner
@@ -43,6 +48,7 @@ ament_target_dependencies(${PROJECT_NAME}_lib
   cmr_geometry_utils
   rclcpp_lifecycle
   lifecycle_msgs
+  visualization_msgs
 )
 
 add_executable(${PROJECT_NAME} 
@@ -71,6 +77,8 @@ ament_export_libraries(${PROJECT_NAME}_lib)
 ament_export_dependencies(
   rclcpp
   std_msgs
+  cmr_msgs
+  nav_msgs
   minimum_jerk_msgs
   geometry_msgs
   minimum_jerk_trajectory_planner
@@ -79,6 +87,7 @@ ament_export_dependencies(
   cmr_geometry_utils
   rclcpp_lifecycle
   lifecycle_msgs
+  visualization_msgs
 )
 
 ament_package()

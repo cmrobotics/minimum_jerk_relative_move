@@ -1,5 +1,10 @@
 minimum_jerk_ros:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: true
     control_frequency: 10.0
     transform_tolerance: 1.0
+    idle_timeout: 10.0
+    robot_radius: 0.26
+    scaled_obstacle_lookahead_distance: 0.4
+    transform_talerance: 1.0
+    debug_trajectory: true
