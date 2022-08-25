@@ -110,12 +110,6 @@ void MinimumJerkRos::rotation_callback()
         RCLCPP_INFO(this->get_logger(), "Rotation: %f rad, min_vel: %f, collision_check: %i, yaw_goal_tolerance: %f, data_save: %i",
                     goal->target_yaw, goal->min_rotational_vel, goal->enable_collision_check, goal->yaw_goal_tolerance, goal->enable_data_save);
 
-        if (goal->target_yaw < -M_PI || goal->target_yaw > M_PI)
-        {
-            RCLCPP_WARN(this->get_logger(), "Target yaw need to be between -pi and pi");
-            action_rotation_server_->terminate_current();
-            return;
-        }
         auto t_init = get_clock()->now();
         try
         {
@@ -125,6 +119,12 @@ void MinimumJerkRos::rotation_callback()
         {
             action_rotation_server_->terminate_current();
             return;
+        }
+
+        double target = goal->target_yaw;
+        if (goal->target_yaw < -M_PI || goal->target_yaw > M_PI)
+        {
+            target -= 2 * M_PI * std::floor((target + M_PI) / (2 * M_PI));
         }
 
         auto rotation_feedback = std::make_shared<Rotation::Feedback>();
@@ -203,7 +203,7 @@ void MinimumJerkRos::rotation_callback()
                 }
             }
 
-            if (abs(rotation_feedback->angular_distance_traveled - abs(goal->target_yaw)) <= yaw_tolerance)
+            if (abs(rotation_feedback->angular_distance_traveled - abs(target)) <= yaw_tolerance)
             {
                 stop_robot_(angular_vel);
                 break;
@@ -238,8 +238,8 @@ void MinimumJerkRos::rotation_callback()
         rotation_feedback->angular_distance_traveled = compute_angle_();
         auto res = std::make_shared<Rotation::Result>();
         res->total_elapsed_time.nanosec = int((get_clock()->now() - t_init).nanoseconds());
-        RCLCPP_INFO(this->get_logger(), "distance traveled %f, error %f\n", rotation_feedback->angular_distance_traveled, abs(rotation_feedback->angular_distance_traveled - abs(goal->target_yaw)));
-        (abs(rotation_feedback->angular_distance_traveled - abs(goal->target_yaw)) <= yaw_tolerance) ? action_rotation_server_->succeeded_current(res) : action_rotation_server_->terminate_current();
+        RCLCPP_INFO(this->get_logger(), "distance traveled %f, error %f\n", rotation_feedback->angular_distance_traveled, abs(rotation_feedback->angular_distance_traveled - abs(target)));
+        (abs(rotation_feedback->angular_distance_traveled - abs(target)) <= yaw_tolerance) ? action_rotation_server_->succeeded_current(res) : action_rotation_server_->terminate_current();
     }
 }
 
@@ -657,8 +657,12 @@ double MinimumJerkRos::compute_distance_()
 }
 
 Trajectory MinimumJerkRos::compute_rotation_velocities_(const std::shared_ptr<const minimum_jerk_msgs::action::Rotate::Goal> &goal)
-{
-    Pose pose_target = Pose(0, 0, goal->target_yaw);
+{   double target = goal->target_yaw;
+    if (goal->target_yaw < -M_PI || goal->target_yaw > M_PI)
+    {
+        target -= 2 * M_PI * std::floor((target + M_PI) / (2 * M_PI));
+    }
+    Pose pose_target = Pose(0, 0, target);
     Pose pose_start = Pose(0, 0, 0);
     double dist = abs(pose_target.get_theta() - pose_start.get_theta());
     double max_total = dist / goal->min_rotational_vel;
