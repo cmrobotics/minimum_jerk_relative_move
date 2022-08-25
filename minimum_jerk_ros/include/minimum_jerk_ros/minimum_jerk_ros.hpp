@@ -85,11 +85,11 @@ private:
 
 
     Trajectory compute_translation_velocities_(const std::shared_ptr<const minimum_jerk_msgs::action::Translate::Goal> &goal);
-    bool check_translation_collision_(std::vector<geometry_msgs::msg::PoseStamped> poses, geometry_msgs::msg::Twist linear_vel);
+    bool check_translation_collision_(std::vector<geometry_msgs::msg::PoseStamped> poses, geometry_msgs::msg::Twist linear_vel, double* t_collision);
     double compute_distance_();
 
     Trajectory compute_rotation_velocities_(const std::shared_ptr<const minimum_jerk_msgs::action::Rotate::Goal> &goal);
-    bool check_rotation_collision_(std::vector<geometry_msgs::msg::PoseStamped> poses, geometry_msgs::msg::Twist angular_vel);
+    bool check_rotation_collision_(std::vector<geometry_msgs::msg::PoseStamped> poses, geometry_msgs::msg::Twist angular_vel, double* t_collision);
     double compute_angle_();
 };
 }

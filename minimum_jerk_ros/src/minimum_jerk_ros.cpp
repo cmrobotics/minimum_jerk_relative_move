@@ -108,7 +108,7 @@ void MinimumJerkRos::rotation_callback()
 {   if (!action_translation_server_->is_running()) {
         auto goal = action_rotation_server_->get_current_goal();
         RCLCPP_INFO(this->get_logger(), "Rotation: %f rad, min_vel: %f, collision_check: %i, yaw_goal_tolerance: %f, data_save: %i",
-                    goal->target_yaw, goal->min_rotational_vel, goal->enable_collision_check, goal->yaw_goal_tolerance, goal->enable_data_save);
+                    goal->target_yaw, goal->min_velocity, goal->enable_collision_check, goal->yaw_goal_tolerance, goal->enable_data_save);
 
         auto t_init = get_clock()->now();
         try
@@ -159,6 +159,7 @@ void MinimumJerkRos::rotation_callback()
         auto t_init_for = get_clock()->now();
         for (auto vel : odometry.get_velocities())
         {
+            double t_collision = 0;
             if (action_rotation_server_->is_cancel_requested())
             {
                 stop_robot_(angular_vel);
@@ -179,7 +180,7 @@ void MinimumJerkRos::rotation_callback()
 
             if (goal->enable_collision_check)
             {
-                if (!check_rotation_collision_(poses, angular_vel))
+                if (!check_rotation_collision_(poses, angular_vel, &t_collision))
                     return;
             }
 
@@ -192,13 +193,13 @@ void MinimumJerkRos::rotation_callback()
             auto init_timeout = std::chrono::system_clock::now();
             while (abs(odometry.get_poses().at(i).get_theta()) >= rotation_feedback->angular_distance_traveled - yaw_tolerance)
             {
-                if (std::chrono::system_clock::now() - init_timeout >= std::chrono::milliseconds(static_cast<int>(1 / this->control_frequency_ * 1000 * 1.15)))
+                if (std::chrono::system_clock::now() - init_timeout >= std::chrono::milliseconds(static_cast<int>(t_collision + 1 / this->control_frequency_ * 1000 * 1.15)))
                     break;
                 rotation_feedback->angular_distance_traveled = compute_angle_();
 
                 if (goal->enable_collision_check)
                 {
-                    if (!check_rotation_collision_(poses, angular_vel))
+                    if (!check_rotation_collision_(poses, angular_vel, &t_collision))
                         return;
                 }
             }
@@ -291,6 +292,7 @@ void MinimumJerkRos::translation_callback()
         auto t_init_for = get_clock()->now();
         for (auto vel : odometry.get_velocities())
         {
+            double t_collision = 0;
             if (action_translation_server_->is_cancel_requested())
             {
                 stop_robot_(linear_vel);
@@ -311,7 +313,7 @@ void MinimumJerkRos::translation_callback()
 
             if (goal->enable_collision_check)
             {
-                if (!check_translation_collision_(poses, linear_vel))
+                if (!check_translation_collision_(poses, linear_vel, &t_collision))
                     return;
             }
 
@@ -325,13 +327,13 @@ void MinimumJerkRos::translation_callback()
 
             while (abs(odometry.get_poses().at(i).get_x()) >= translation_feedback->distance_traveled - xy_tolerance)
             {
-                if (std::chrono::system_clock::now() - init_timeout >= std::chrono::milliseconds(static_cast<int>(1 / this->control_frequency_ * 1000 * 1.15)))
+                if (std::chrono::system_clock::now() - init_timeout >= std::chrono::milliseconds(static_cast<int>(t_collision + 1 / this->control_frequency_ * 1000 * 1.15)))
                     break;
                 translation_feedback->distance_traveled = compute_distance_();
 
                 if (goal->enable_collision_check)
                 {
-                    if (!check_translation_collision_(poses, linear_vel))
+                    if (!check_translation_collision_(poses, linear_vel, &t_collision))
                         return;
                 }
             }
@@ -613,7 +615,7 @@ Trajectory MinimumJerkRos::compute_translation_velocities_(const std::shared_ptr
     return odometry;
 }
 
-bool MinimumJerkRos::check_translation_collision_(std::vector<geometry_msgs::msg::PoseStamped> poses, geometry_msgs::msg::Twist linear_vel)
+bool MinimumJerkRos::check_translation_collision_(std::vector<geometry_msgs::msg::PoseStamped> poses, geometry_msgs::msg::Twist linear_vel, double *t_collision)
 {
     auto start = std::chrono::system_clock::now();
     // If there's an obstacle between the current pose and the horizon distance on the pre-planned path, stop the robot
@@ -633,6 +635,8 @@ bool MinimumJerkRos::check_translation_collision_(std::vector<geometry_msgs::msg
         stop_robot_(linear_vel);
         auto end = std::chrono::system_clock::now();
         std::chrono::duration<double> elapsed_seconds = end - start;
+
+        *t_collision = (end - start).count();
 
         if (elapsed_seconds.count() > idle_timeout_)
         {
@@ -665,7 +669,7 @@ Trajectory MinimumJerkRos::compute_rotation_velocities_(const std::shared_ptr<co
     Pose pose_target = Pose(0, 0, target);
     Pose pose_start = Pose(0, 0, 0);
     double dist = abs(pose_target.get_theta() - pose_start.get_theta());
-    double max_total = dist / goal->min_rotational_vel;
+    double max_total = dist / goal->min_velocity;
     TrajectoryPlanner controller = TrajectoryPlanner(max_total, 1 / this->control_frequency_);
     Robot robot = Robot("Robot", max_total, controller, pose_start, pose_target, "r");
     robot.generate_trajectory();
@@ -681,7 +685,7 @@ Trajectory MinimumJerkRos::compute_rotation_velocities_(const std::shared_ptr<co
     return odometry;
 }
 
-bool MinimumJerkRos::check_rotation_collision_(std::vector<geometry_msgs::msg::PoseStamped> poses, geometry_msgs::msg::Twist angular_vel)
+bool MinimumJerkRos::check_rotation_collision_(std::vector<geometry_msgs::msg::PoseStamped> poses, geometry_msgs::msg::Twist angular_vel, double* t_collision)
 {
     auto start = std::chrono::system_clock::now();
     // If there's an obstacle between the current pose and the horizon distance on the pre-planned path, stop the robot
@@ -701,6 +705,8 @@ bool MinimumJerkRos::check_rotation_collision_(std::vector<geometry_msgs::msg::P
         stop_robot_(angular_vel);
         auto end = std::chrono::system_clock::now();
         std::chrono::duration<double> elapsed_seconds = end - start;
+
+        *t_collision = (end - start).count();
 
         if (elapsed_seconds.count() > idle_timeout_)
         {
