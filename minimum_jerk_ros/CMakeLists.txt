@@ -6,9 +6,9 @@ if(NOT CMAKE_C_STANDARD)
   set(CMAKE_C_STANDARD 99)
 endif()
 
-# Default to C++14
+# Default to C++20
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 20)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -28,6 +28,7 @@ find_package(rclcpp_lifecycle REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(cmr_clients_utils REQUIRED)
 
 include_directories(include)
 
@@ -49,6 +50,7 @@ ament_target_dependencies(${PROJECT_NAME}_lib
   rclcpp_lifecycle
   lifecycle_msgs
   visualization_msgs
+  cmr_clients_utils
 )
 
 add_executable(${PROJECT_NAME} 
@@ -88,6 +90,7 @@ ament_export_dependencies(
   rclcpp_lifecycle
   lifecycle_msgs
   visualization_msgs
+  cmr_clients_utils
 )
 
 ament_package()

@@ -18,5 +18,5 @@ int main()
     double max_total = dist / max_linear_velocity;
     Robot robot = Robot("Robot", max_total, controller, pose_strat, pose_target, (std::string )"r");
     robot.generate_trajectory();
-    return 0;
+
 }
