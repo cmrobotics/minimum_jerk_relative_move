@@ -1,6 +1,6 @@
 #goal definition
 float32 target_yaw
-float32 min_rotational_vel
+float32 min_velocity
 bool enable_collision_check
 float32 yaw_goal_tolerance
 bool enable_data_save
