@@ -14,11 +14,11 @@ The following classes are used to generate a trajectory:
 - `Pose` contains the parameters of an pose vector (`x`, `y`, `theta`)
 - `Trajectory` compute the acceleration and the velocities (`accelerations`, `velocities`) from a `timestamps` vector and a `poses` vector
 - `TrajectoryPlanner`:
-* the constructor take `total_time` which is the duration of the action and `dt` which is the interval between each intermediate *pose*, *velocity*, *acceleration*
-* the function `generate_trajectory` compute `list_timestamps` vector and a `list_poses` vector from a **start pose** and a **target pose**
+    * the constructor take `total_time` which is the duration of the action and `dt` which is the interval between each intermediate *pose*, *velocity*, *acceleration*
+    * the function `generate_trajectory` compute `list_timestamps` vector and a `list_poses` vector from a **start pose** and a **target pose**
 - `Robot`:
-* the constructor take a `ǹame`, the `total_time` which is the duration of the action, a reference to a *TrajectoryPlanner* `path_finder_controller`, the start pose `pose_start`, the target pose `pose_target` and the `move_type` (*"r"* or *"tx"* or *"ty"*)
-* the function `generate_trajectory`compute the Trajectory `odometry` with the *TrajectoryPlanner* `path_finder_controller`
+    * the constructor take a `ǹame`, the `total_time` which is the duration of the action, a reference to a *TrajectoryPlanner* `path_finder_controller`, the start pose `pose_start`, the target pose `pose_target` and the `move_type` (*"r"* or *"tx"* or *"ty"*)
+    * the function `generate_trajectory`compute the Trajectory `odometry` with the *TrajectoryPlanner* `path_finder_controller`
 
 All parameters of all classes are accessible with getters.
 
@@ -68,6 +68,6 @@ float32 distance_traveled
 
 ### Documentation About Minimum Jerk Trajectory
 
-See this documentation [online](https://mika-s.github.io/python/control-theory/trajectory-generation/2017/12/06/trajectory-generation-with-a-minimum-jerk-trajectory.html)
+See this documentation [online](https://mika-s.github.io/python/control-theory/trajectory-generation/2017/12/06/trajectory-generation-with-a-minimum-jerk-trajectory.html).
 
 
