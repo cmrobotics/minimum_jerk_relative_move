@@ -17,6 +17,8 @@ for row_poses in f_poses:
 
 plt.figure(1)
 plt.plot(t_poses, poses)  
+plt.xlabel("s")
+plt.ylabel("m")
 plt.title('Poses', fontsize = 20)
 plt.legend()
 
@@ -30,6 +32,8 @@ for row_velocities in f_velocities:
 
 plt.figure(2)
 plt.plot(t_velocities, velocities)  
+plt.xlabel("s")
+plt.ylabel("m/s")
 plt.title('Velocities', fontsize = 20)
 plt.legend()
 
@@ -42,7 +46,9 @@ for row_acceleration in f_accelerations:
     accelerations.append(float(row_acceleration[1]))
     t_accelerations.append(float(row_acceleration[0]))
   
-plt.plot(t_accelerations, accelerations)  
+plt.plot(t_accelerations, accelerations) 
+plt.xlabel("s")
+plt.ylabel("m/s²") 
 plt.title('Accelerations', fontsize = 20)
 plt.legend()
 plt.show()

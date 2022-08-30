@@ -11,8 +11,10 @@
 
   <depend>rclcpp</depend>  
 
+ <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
-  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>cmr_tests_utils</test_depend>
+  <test_depend>cmr_clients_utils</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
