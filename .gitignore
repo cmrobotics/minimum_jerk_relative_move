@@ -1,2 +1,4 @@
 minimum_jerk_trajectory_planner/ressources/*
-!minimum_jerk_trajectory_planner/ressources/graph.py
+!minimum_jerk_trajectory_planner/ressources/graph_acc_vel_pos.py
+!minimum_jerk_trajectory_planner/ressources/graph_1_value.py
+!minimum_jerk_trajectory_planner/ressources/graph_2_values.py
