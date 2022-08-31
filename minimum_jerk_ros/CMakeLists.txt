@@ -61,9 +61,9 @@ target_link_libraries(${PROJECT_NAME}
   ${PROJECT_NAME}_lib
 )
 
-
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  add_subdirectory(test)
 endif()
 
 install(TARGETS ${PROJECT_NAME}
