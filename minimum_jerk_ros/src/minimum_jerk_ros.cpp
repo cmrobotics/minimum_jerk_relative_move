@@ -242,10 +242,10 @@ void MinimumJerkRos::rotation_callback()
 
   RCLCPP_INFO(get_logger(), "Expected Movement: %.4f\nDistance Traveled: %.4f\n Tolerance: %.4f\n Error: %.4f",
               goal->target_yaw, rotation_feedback->angular_distance_traveled, yaw_tolerance, error
-             )
+             );
   if (error <= yaw_tolerance) {
     RCLCPP_INFO(get_logger(), "Rotation was a success!");
-    action_rotation_server_->succeeded_current(res)
+    action_rotation_server_->succeeded_current(res);
   }  else {
     RCLCPP_ERROR(get_logger(), "Rotation failed!");
     action_rotation_server_->terminate_current();
@@ -378,11 +378,11 @@ void MinimumJerkRos::translation_callback()
   auto error = abs(translation_feedback->distance_traveled - abs(goal->target_x));
 
   RCLCPP_INFO(get_logger(), "Expected Movement: %.4f\nDistance Traveled: %.4f\n Tolerance: %.4f\n Error: %.4f",
-              goal->target_x, translation_feedback->distance_traveled, xy_tolerance, error)
+              goal->target_x, translation_feedback->distance_traveled, xy_tolerance, error);
 
   if (error <= xy_tolerance) {
     RCLCPP_INFO(get_logger(), "Translation was a success!");
-    action_translation_server_->succeeded_current(res)
+    action_translation_server_->succeeded_current(res);
   } else {
     RCLCPP_INFO(get_logger(), "Translation failed!");
     action_rotation_server_->terminate_current();
