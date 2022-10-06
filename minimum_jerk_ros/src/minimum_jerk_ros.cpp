@@ -11,7 +11,7 @@ MinimumJerkRos::MinimumJerkRos(bool intra_process_comms) : rclcpp_lifecycle::Lif
   this->declare_parameter<double>("transform_tolerance", 1.0);
   this->declare_parameter<double>("control_frequency", 30.0);
   this->declare_parameter<double>("idle_timeout", 10.0);
-  this->declare_parameter<double>("obstacle_lookahead_distance", 1);
+  this->declare_parameter<double>("obstacle_lookahead_distance", 1.0);
   this->declare_parameter<double>("robot_radius", 0.26);
   this->declare_parameter<bool>("debug_trajectory", true);
 }
