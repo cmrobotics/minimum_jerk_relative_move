@@ -106,294 +106,312 @@ namespace minimum_jerk
 
     void MinimumJerkRos::rotation_callback()
     {
-        if (!action_translation_server_->is_running())
+        if (action_translation_server_->is_running())
         {
-            auto goal = action_rotation_server_->get_current_goal();
-            RCLCPP_INFO(this->get_logger(), "Rotation: %f rad, min_vel: %f, collision_check: %i, yaw_goal_tolerance: %f, data_save: %i",
-                        goal->target_yaw, goal->min_velocity, goal->enable_collision_check, goal->yaw_goal_tolerance, goal->enable_data_save);
+            RCLCPP_ERROR(get_logger(), "Requested Rotation while Translation is running. That's forbidden.");
+            action_rotation_server_->terminate_current();
+        }
 
-            if (goal->target_yaw == 0)
-            {
-                auto r = std::make_shared<Rotation::Result>();
-                r->total_elapsed_time.nanosec = 0;
-                action_rotation_server_->succeeded_current(r);
-                return;
-            }
+        auto goal = action_rotation_server_->get_current_goal();
+        RCLCPP_INFO(this->get_logger(), "Rotation: %f rad, min_vel: %f, collision_check: %i, yaw_goal_tolerance: %f, data_save: %i",
+                    goal->target_yaw, goal->min_velocity, goal->enable_collision_check, goal->yaw_goal_tolerance, goal->enable_data_save);
 
-            auto t_init = get_clock()->now();
-            try
+        if (goal->target_yaw <= goal->yaw_goal_tolerance)
+        {
+            auto r = std::make_shared<Rotation::Result>();
+            r->total_elapsed_time.nanosec = 0;
+            action_rotation_server_->succeeded_current(r);
+            return;
+        }
+
+        auto t_init = get_clock()->now();
+
+        try {
+            this->init_pose_ = this->get_current_pose_();
+        } catch (tf2::TransformException &e) {
+            action_rotation_server_->terminate_current();
+            return;
+        }
+
+        double target = goal->target_yaw;
+
+        if (goal->target_yaw < -M_PI || goal->target_yaw > M_PI)
+        {
+            target -= 2 * M_PI * std::floor((target + M_PI) / (2 * M_PI));
+        }
+
+        auto rotation_feedback = std::make_shared<Rotation::Feedback>();
+        auto angular_vel = geometry_msgs::msg::Twist();
+        angular_vel.angular = geometry_msgs::msg::Vector3();
+        double yaw_tolerance;
+        (goal->yaw_goal_tolerance > 0) ? yaw_tolerance = goal->yaw_goal_tolerance : yaw_tolerance = 0.1;
+
+        auto odometry = compute_rotation_velocities_(goal);
+        auto poses = convert_poses_to_posestampeds_(odometry.get_poses());
+
+        if (poses.size() == 0)
+        {
+            RCLCPP_ERROR(get_logger(), "Error transformation of the path");
+            action_rotation_server_->terminate_all();
+            return;
+        }
+
+        if (debug_trajectory_)
+        {
+            show_trajectory_(poses);
+        }
+
+        int i = 0;
+        int fd_for_times;
+        int fd_r_s_times;
+
+        if (goal->enable_data_save)
+        {
+            fd_for_times = FillFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/for_times.txt");
+            fd_r_s_times = FillFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/r_s_times.txt");
+        }
+
+        auto t_init_for = get_clock()->now();
+
+        for (auto vel : odometry.get_velocities())
+        {
+            double t_collision = 0;
+
+            if (action_rotation_server_->is_cancel_requested())
             {
-                this->init_pose_ = this->get_current_pose_();
-            }
-            catch (tf2::TransformException &e)
-            {
+                stop_robot_(angular_vel);
+                RCLCPP_ERROR(get_logger(), "Rotation stopped: action cancelled by client");
                 action_rotation_server_->terminate_current();
                 return;
             }
 
-            double target = goal->target_yaw;
-            if (goal->target_yaw < -M_PI || goal->target_yaw > M_PI)
-            {
-                target -= 2 * M_PI * std::floor((target + M_PI) / (2 * M_PI));
-            }
-
-            auto rotation_feedback = std::make_shared<Rotation::Feedback>();
-            auto angular_vel = geometry_msgs::msg::Twist();
-            angular_vel.angular = geometry_msgs::msg::Vector3();
-            double yaw_tolerance;
-            (goal->yaw_goal_tolerance > 0) ? yaw_tolerance = goal->yaw_goal_tolerance : yaw_tolerance = 0.1;
-
-            auto odometry = compute_rotation_velocities_(goal);
-            auto poses = convert_poses_to_posestampeds_(odometry.get_poses());
-            if (poses.size() == 0)
-            {
-                RCLCPP_ERROR(get_logger(), "Error transformation of the path");
-                action_rotation_server_->terminate_all();
+            try {
+                this->current_pose_ = this->get_current_pose_();
+            } catch (tf2::TransformException &e) {
+                RCLCPP_ERROR(get_logger(), "Rotation failed: %s", e.what());
+                action_rotation_server_->terminate_current();
                 return;
             }
+            rotation_feedback->angular_distance_traveled = compute_angle_();
 
-            if (debug_trajectory_)
+            if (goal->enable_collision_check)
             {
-                show_trajectory_(poses);
+                if (!check_rotation_collision_(poses, angular_vel, &t_collision))
+                    return;
             }
 
-            int i = 0;
+            angular_vel.angular.z = static_cast<double>(vel.get_theta());
+            this->publisher_->publish(angular_vel);
+            scaled_obstacle_lookahead_distance_ = obstacle_lookahead_distance_ + obstacle_lookahead_distance_ * angular_vel.angular.z;
+            auto t_begin_for = get_clock()->now();
+            auto init_timeout = std::chrono::system_clock::now();
 
-            int fd_for_times;
-            int fd_r_s_times;
-            if (goal->enable_data_save)
+            while (abs(odometry.get_poses().at(i).get_theta()) >= rotation_feedback->angular_distance_traveled - yaw_tolerance)
             {
-                fd_for_times = FillFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/for_times.txt");
-                fd_r_s_times = FillFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/r_s_times.txt");
-            }
-            auto t_init_for = get_clock()->now();
-            for (auto vel : odometry.get_velocities())
-            {
-                double t_collision = 0;
-                if (action_rotation_server_->is_cancel_requested())
-                {
-                    stop_robot_(angular_vel);
-                    action_rotation_server_->terminate_current();
-                    return;
-                }
-                try
-                {
-                    this->current_pose_ = this->get_current_pose_();
-                }
-                catch (tf2::TransformException &e)
-                {
-                    action_rotation_server_->terminate_current();
-                    return;
-                }
+                if (std::chrono::system_clock::now() - init_timeout >= std::chrono::milliseconds(static_cast<int>(t_collision + 1 / this->control_frequency_ * 1000 * 1.15))) break;
 
                 rotation_feedback->angular_distance_traveled = compute_angle_();
 
-                if (goal->enable_collision_check)
-                {
-                    if (!check_rotation_collision_(poses, angular_vel, &t_collision))
-                        return;
-                }
-
-                angular_vel.angular.z = static_cast<double>(vel.get_theta());
-                this->publisher_->publish(angular_vel);
-
-                scaled_obstacle_lookahead_distance_ = obstacle_lookahead_distance_ + obstacle_lookahead_distance_ * angular_vel.angular.z;
-
-                auto t_begin_for = get_clock()->now();
-                auto init_timeout = std::chrono::system_clock::now();
-                while (abs(odometry.get_poses().at(i).get_theta()) >= rotation_feedback->angular_distance_traveled - yaw_tolerance)
-                {
-                    if (std::chrono::system_clock::now() - init_timeout >= std::chrono::milliseconds(static_cast<int>(t_collision + 1 / this->control_frequency_ * 1000 * 1.15)))
-                        break;
-                    rotation_feedback->angular_distance_traveled = compute_angle_();
-
-                    if (goal->enable_collision_check)
-                    {
-                        if (!check_rotation_collision_(poses, angular_vel, &t_collision))
-                            return;
-                    }
-                }
-
-                if (abs(rotation_feedback->angular_distance_traveled - abs(target)) <= yaw_tolerance)
-                {
-                    stop_robot_(angular_vel);
-                    break;
-                }
-
-                action_rotation_server_->publish_feedback(rotation_feedback);
-                if (goal->enable_data_save)
-                {
-                    FillFile::fill_one_ligne(fd_for_times, i, static_cast<double>((get_clock()->now() - t_begin_for).nanoseconds()) * 1e-9);
-                    FillFile::fill_one_ligne(fd_r_s_times, i, static_cast<double>((get_clock()->now() - t_init_for).nanoseconds()) * 1e-9, odometry.get_timestamps().at(i));
-                }
-                i++;
+                if (goal->enable_collision_check) if (!check_rotation_collision_(poses, angular_vel, &t_collision)) return;
             }
 
-            stop_robot_(angular_vel);
+            if (abs(rotation_feedback->angular_distance_traveled - abs(target)) <= yaw_tolerance)
+            {
+                stop_robot_(angular_vel);
+                break;
+            }
+
+            action_rotation_server_->publish_feedback(rotation_feedback);
 
             if (goal->enable_data_save)
             {
-                FillFile::close_file(fd_for_times);
-                FillFile::close_file(fd_r_s_times);
+                FillFile::fill_one_ligne(fd_for_times, i, static_cast<double>((get_clock()->now() - t_begin_for).nanoseconds()) * 1e-9);
+                FillFile::fill_one_ligne(fd_r_s_times, i, static_cast<double>((get_clock()->now() - t_init_for).nanoseconds()) * 1e-9, odometry.get_timestamps().at(i));
             }
-            try
-            {
-                this->current_pose_ = this->get_current_pose_();
-            }
-            catch (tf2::TransformException &e)
-            {
-                action_rotation_server_->terminate_current();
-                return;
-            }
-
-            rotation_feedback->angular_distance_traveled = compute_angle_();
-            auto res = std::make_shared<Rotation::Result>();
-            res->total_elapsed_time.nanosec = int((get_clock()->now() - t_init).nanoseconds());
-            RCLCPP_INFO(this->get_logger(), "distance traveled %f, error %f\n", rotation_feedback->angular_distance_traveled, abs(rotation_feedback->angular_distance_traveled - abs(target)));
-            (abs(rotation_feedback->angular_distance_traveled - abs(target)) <= yaw_tolerance) ? action_rotation_server_->succeeded_current(res) : action_rotation_server_->terminate_current();
+            
+            i++;
         }
+
+        stop_robot_(angular_vel);
+
+        if (goal->enable_data_save)
+        {
+            FillFile::close_file(fd_for_times);
+            FillFile::close_file(fd_r_s_times);
+        }
+
+        try {
+            this->current_pose_ = this->get_current_pose_();
+        } catch (tf2::TransformException &e) {
+            RCLCPP_ERROR(get_logger(), "Rotation failed: %s", e.what());
+            action_rotation_server_->terminate_current();
+            return;
+        }
+
+        rotation_feedback->angular_distance_traveled = compute_angle_();
+        auto res = std::make_shared<Rotation::Result>();
+        res->total_elapsed_time.nanosec = int((get_clock()->now() - t_init).nanoseconds());
+        auto error = abs(rotation_feedback->angular_distance_traveled - abs(target));
+
+        RCLCPP_INFO(get_logger(), "Expected Movement: %.4f\nDistance Traveled: %.4f\n Tolerance: %.4f\n Error: %.4f", 
+                goal->target_yaw, rotation_feedback->angular_distance_traveled, yaw_tolerance, error
+        )
+        if (error <= yaw_tolerance) {
+            RCLCPP_INFO(get_logger(), "Rotation was a success!");
+            action_rotation_server_->succeeded_current(res)
+        }  else {
+            RCLCPP_ERROR(get_logger(), "Rotation failed!");
+            action_rotation_server_->terminate_current();
+        } 
     }
 
     void MinimumJerkRos::translation_callback()
     {
-        if (!action_rotation_server_->is_running())
+        
+        if (action_rotation_server_->is_running())
         {
-            auto goal = action_translation_server_->get_current_goal();
-            RCLCPP_INFO(this->get_logger(), "Translation: %f m, min_velocity: %f, collision_check: %i, xy_goal_tolerance: %f, data_save: %i",
-                        goal->target_x, goal->min_velocity, goal->enable_collision_check, goal->xy_goal_tolerance, goal->enable_data_save);
-            
-            if (goal->target_x == 0)
+            RCLCPP_ERROR(get_logger(), "Requested Translation while Rotation is running. That's forbidden.");
+            action_translation_server_->terminate_current();
+        }
+
+        auto goal = action_translation_server_->get_current_goal();
+        RCLCPP_INFO(this->get_logger(), "Translation: %f m, min_velocity: %f, collision_check: %i, xy_goal_tolerance: %f, data_save: %i",
+                    goal->target_x, goal->min_velocity, goal->enable_collision_check, goal->xy_goal_tolerance, goal->enable_data_save);
+        
+        if (goal->target_x == 0)
+        {
+            auto r = std::make_shared<Translation::Result>();
+            r->total_elapsed_time.nanosec = 0;
+            action_translation_server_->succeeded_current(r);
+            return;
+        }
+        
+        auto t_init = get_clock()->now();
+        try {
+            this->init_pose_ = this->get_current_pose_();
+        } catch (tf2::TransformException &e) {
+            RCLCPP_ERROR(get_logger(), "Translation failed: %s", e.what());
+            action_translation_server_->terminate_current();
+            return;
+        }
+
+        auto translation_feedback = std::make_shared<Translation::Feedback>();
+        auto linear_vel = geometry_msgs::msg::Twist();
+        linear_vel.linear = geometry_msgs::msg::Vector3();
+        double xy_tolerance;
+        (goal->xy_goal_tolerance > 0) ? xy_tolerance = goal->xy_goal_tolerance : xy_tolerance = 0.015;
+        auto odometry = compute_translation_velocities_(goal);
+        auto poses = convert_poses_to_posestampeds_(odometry.get_poses());
+
+        if (poses.size() == 0)
+        {
+            RCLCPP_ERROR(get_logger(), "Error transformation of the path");
+            action_translation_server_->terminate_all();
+            return;
+        }
+
+        if (debug_trajectory_)
+        {
+            show_trajectory_(poses);
+        }
+
+        int i = 0;
+        int fd_for_times;
+        int fd_r_s_times;
+
+        if (goal->enable_data_save)
+        {
+            fd_for_times = FillFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/for_times.txt");
+            fd_r_s_times = FillFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/r_s_times.txt");
+        }
+
+        auto t_init_for = get_clock()->now();
+
+        for (auto vel : odometry.get_velocities())
+        {
+            double t_collision = 0;
+
+            if (action_translation_server_->is_cancel_requested())
             {
-                auto r = std::make_shared<Translation::Result>();
-                r->total_elapsed_time.nanosec = 0;
-                action_translation_server_->succeeded_current(r);
-                return;
-            }
-            
-            auto t_init = get_clock()->now();
-            try
-            {
-                this->init_pose_ = this->get_current_pose_();
-            }
-            catch (tf2::TransformException &e)
-            {
+                stop_robot_(linear_vel);
                 action_translation_server_->terminate_current();
                 return;
             }
-            auto translation_feedback = std::make_shared<Translation::Feedback>();
-            auto linear_vel = geometry_msgs::msg::Twist();
-            linear_vel.linear = geometry_msgs::msg::Vector3();
-            double xy_tolerance;
-            (goal->xy_goal_tolerance > 0) ? xy_tolerance = goal->xy_goal_tolerance : xy_tolerance = 0.015;
-            auto odometry = compute_translation_velocities_(goal);
 
-            auto poses = convert_poses_to_posestampeds_(odometry.get_poses());
-            if (poses.size() == 0)
-            {
-                RCLCPP_ERROR(get_logger(), "Error transformation of the path");
-                action_translation_server_->terminate_all();
-                return;
-            }
-
-            if (debug_trajectory_)
-            {
-                show_trajectory_(poses);
-            }
-
-            int i = 0;
-
-            int fd_for_times;
-            int fd_r_s_times;
-            if (goal->enable_data_save)
-            {
-                fd_for_times = FillFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/for_times.txt");
-                fd_r_s_times = FillFile::open_file("./src/mypackage/minimum_jerk_relative_move/minimum_jerk_trajectory_planner/ressources/r_s_times.txt");
-            }
-            auto t_init_for = get_clock()->now();
-            for (auto vel : odometry.get_velocities())
-            {
-                double t_collision = 0;
-                if (action_translation_server_->is_cancel_requested())
-                {
-                    stop_robot_(linear_vel);
-                    action_translation_server_->terminate_current();
-                    return;
-                }
-                try
-                {
-                    this->current_pose_ = this->get_current_pose_();
-                }
-                catch (tf2::TransformException &e)
-                {
-                    action_translation_server_->terminate_current();
-                    return;
-                }
-
-                translation_feedback->distance_traveled = compute_distance_();
-
-                if (goal->enable_collision_check)
-                {
-                    if (!check_translation_collision_(poses, linear_vel, &t_collision))
-                        return;
-                }
-
-                linear_vel.linear.x = static_cast<double>(vel.get_x());
-                this->publisher_->publish(linear_vel);
-
-                scaled_obstacle_lookahead_distance_ = obstacle_lookahead_distance_ + obstacle_lookahead_distance_ * linear_vel.linear.x;
-
-                auto t_begin_for = get_clock()->now();
-                auto init_timeout = std::chrono::system_clock::now();
-
-                while (abs(odometry.get_poses().at(i).get_x()) >= translation_feedback->distance_traveled - xy_tolerance)
-                {
-                    if (std::chrono::system_clock::now() - init_timeout >= std::chrono::milliseconds(static_cast<int>(t_collision + 1 / this->control_frequency_ * 1000 * 1.15)))
-                        break;
-                    translation_feedback->distance_traveled = compute_distance_();
-
-                    if (goal->enable_collision_check)
-                    {
-                        if (!check_translation_collision_(poses, linear_vel, &t_collision))
-                            return;
-                    }
-                }
-
-                if (abs(translation_feedback->distance_traveled - abs(goal->target_x)) <= xy_tolerance)
-                {
-                    stop_robot_(linear_vel);
-                    break;
-                }
-
-                action_translation_server_->publish_feedback(translation_feedback);
-                if (goal->enable_data_save)
-                {
-                    FillFile::fill_one_ligne(fd_for_times, i, static_cast<double>((get_clock()->now() - t_begin_for).nanoseconds()) * 1e-9);
-                    FillFile::fill_one_ligne(fd_r_s_times, i, static_cast<double>((get_clock()->now() - t_init_for).nanoseconds()) * 1e-9, odometry.get_timestamps().at(i));
-                }
-                i++;
-            }
-            stop_robot_(linear_vel);
-            if (goal->enable_data_save)
-            {
-                FillFile::close_file(fd_for_times);
-                FillFile::close_file(fd_r_s_times);
-            }
-            try
-            {
+            try {
                 this->current_pose_ = this->get_current_pose_();
-            }
-            catch (tf2::TransformException &e)
-            {
+            } catch (tf2::TransformException &e) {
                 action_translation_server_->terminate_current();
                 return;
             }
 
             translation_feedback->distance_traveled = compute_distance_();
+            if (goal->enable_collision_check)
+            {
+                if (!check_translation_collision_(poses, linear_vel, &t_collision))
+                    return;
+            }
 
-            auto res = std::make_shared<Translation::Result>();
-            res->total_elapsed_time.nanosec = int((get_clock()->now() - t_init).nanoseconds());
-            RCLCPP_INFO(this->get_logger(), "distance traveled %f, error %f\n", translation_feedback->distance_traveled, abs(translation_feedback->distance_traveled - abs(goal->target_x)));
-            (abs(translation_feedback->distance_traveled - abs(goal->target_x)) <= xy_tolerance) ? action_translation_server_->succeeded_current(res) : action_rotation_server_->terminate_current();
+            linear_vel.linear.x = static_cast<double>(vel.get_x());
+            this->publisher_->publish(linear_vel);
+            scaled_obstacle_lookahead_distance_ = obstacle_lookahead_distance_ + obstacle_lookahead_distance_ * linear_vel.linear.x;
+            auto t_begin_for = get_clock()->now();
+            auto init_timeout = std::chrono::system_clock::now();
+
+            while (abs(odometry.get_poses().at(i).get_x()) >= translation_feedback->distance_traveled - xy_tolerance)
+            {
+                if (std::chrono::system_clock::now() - init_timeout >= std::chrono::milliseconds(static_cast<int>(t_collision + 1 / this->control_frequency_ * 1000 * 1.15)))
+                    break;
+                translation_feedback->distance_traveled = compute_distance_();
+                if (goal->enable_collision_check)
+                {
+                    if (!check_translation_collision_(poses, linear_vel, &t_collision))
+                        return;
+                }
+            }
+            if (abs(translation_feedback->distance_traveled - abs(goal->target_x)) <= xy_tolerance)
+            {
+                stop_robot_(linear_vel);
+                break;
+            }
+            action_translation_server_->publish_feedback(translation_feedback);
+            if (goal->enable_data_save)
+            {
+                FillFile::fill_one_ligne(fd_for_times, i, static_cast<double>((get_clock()->now() - t_begin_for).nanoseconds()) * 1e-9);
+                FillFile::fill_one_ligne(fd_r_s_times, i, static_cast<double>((get_clock()->now() - t_init_for).nanoseconds()) * 1e-9, odometry.get_timestamps().at(i));
+            }
+            i++;
+        }
+        stop_robot_(linear_vel);
+
+        if (goal->enable_data_save)
+        {
+            FillFile::close_file(fd_for_times);
+            FillFile::close_file(fd_r_s_times);
+        }
+
+        try {
+            this->current_pose_ = this->get_current_pose_();
+        } catch (tf2::TransformException &e) {
+            RCLCPP_ERROR(get_logger(), "Translation failed: %s", e.what());
+            action_translation_server_->terminate_current();
+            return;
+        }
+
+        translation_feedback->distance_traveled = compute_distance_();
+        auto res = std::make_shared<Translation::Result>();
+        res->total_elapsed_time.nanosec = int((get_clock()->now() - t_init).nanoseconds());
+        auto error = abs(translation_feedback->distance_traveled - abs(goal->target_x));
+
+        RCLCPP_INFO(get_logger(), "Expected Movement: %.4f\nDistance Traveled: %.4f\n Tolerance: %.4f\n Error: %.4f", 
+                goal->target_x, translation_feedback->distance_traveled, xy_tolerance, error)
+
+        if (error <= xy_tolerance) {
+            RCLCPP_INFO(get_logger(), "Translation was a success!");
+            action_translation_server_->succeeded_current(res) 
+        } else {
+            RCLCPP_INFO(get_logger(), "Translation failed!");
+            action_rotation_server_->terminate_current();
         }
     }
 

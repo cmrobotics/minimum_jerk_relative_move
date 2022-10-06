@@ -98,22 +98,73 @@ TEST(RosNodeTestRot, reach_the_positive_rotation_goal)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-    for (int k = 0; k < 3; k++)
-    {
-        robot_node->reset_odometry();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    // Rotate 3.0 degrees
+    robot_node->reset_odometry();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    minimum_jerk_msgs::action::Rotate::Goal goal;
+    goal.target_yaw = 3.14/30;
+    goal.min_velocity = 0.3;
+    goal.enable_collision_check = false;
+    goal.yaw_goal_tolerance = 0.05;
+    goal.enable_data_save = false;
+    auto status = rotation_client->send_goal(goal);
+    EXPECT_EQ(status, rclcpp_action::ResultCode::SUCCEEDED);
 
-        minimum_jerk_msgs::action::Rotate::Goal goal;
-        goal.target_yaw = 0.5 + k * 0.5;
-        goal.min_velocity = 0.3;
-        goal.enable_collision_check = false;
-        goal.yaw_goal_tolerance = 0.1;
-        goal.enable_data_save = false;
+    // Rotate 9.0
+    robot_node->reset_odometry();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    goal.target_yaw = 3.14/10;
+    goal.min_velocity = 0.3;
+    goal.enable_collision_check = false;
+    goal.yaw_goal_tolerance = 0.05;
+    goal.enable_data_save = false;
+    status = rotation_client->send_goal(goal);
+    EXPECT_EQ(status, rclcpp_action::ResultCode::SUCCEEDED);
 
-        auto status = rotation_client->send_goal(goal);
+    // Rotate 15
+    robot_node->reset_odometry();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    goal.target_yaw = 3.14/6;
+    goal.min_velocity = 0.3;
+    goal.enable_collision_check = false;
+    goal.yaw_goal_tolerance = 0.05;
+    goal.enable_data_save = false;
+    status = rotation_client->send_goal(goal);
+    EXPECT_EQ(status, rclcpp_action::ResultCode::SUCCEEDED);
 
-        EXPECT_EQ(status, rclcpp_action::ResultCode::SUCCEEDED);
-    }
+    // Rotate 30
+    robot_node->reset_odometry();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    goal.target_yaw = 3.14/3;
+    goal.min_velocity = 0.3;
+    goal.enable_collision_check = false;
+    goal.yaw_goal_tolerance = 0.05;
+    goal.enable_data_save = false;
+    status = rotation_client->send_goal(goal);
+    EXPECT_EQ(status, rclcpp_action::ResultCode::SUCCEEDED);
+
+    // Rotate 45
+    robot_node->reset_odometry();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    goal.target_yaw = 3.14/2;
+    goal.min_velocity = 0.3;
+    goal.enable_collision_check = false;
+    goal.yaw_goal_tolerance = 0.05;
+    goal.enable_data_save = false;
+    status = rotation_client->send_goal(goal);
+    EXPECT_EQ(status, rclcpp_action::ResultCode::SUCCEEDED);
+
+    // Rotate 90
+    robot_node->reset_odometry();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    goal.target_yaw = 3.14;
+    goal.min_velocity = 0.3;
+    goal.enable_collision_check = false;
+    goal.yaw_goal_tolerance = 0.05;
+    goal.enable_data_save = false;
+    status = rotation_client->send_goal(goal);
+    EXPECT_EQ(status, rclcpp_action::ResultCode::SUCCEEDED);
+
     rclcpp::shutdown();
 }
 
