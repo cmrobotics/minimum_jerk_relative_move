@@ -4,20 +4,20 @@ namespace minimum_jerk
 {
 Acceleration::Acceleration(double ax, double ay, double atheta)
 {
-    x_ = ax;
-    y_ = ay;
-    theta_ = atheta;
+  x_ = ax;
+  y_ = ay;
+  theta_ = atheta;
 }
 double Acceleration::get_x() const
 {
-    return x_;
+  return x_;
 }
 double Acceleration::get_y() const
 {
-    return y_;
+  return y_;
 }
 double Acceleration::get_theta() const
 {
-    return theta_;
+  return theta_;
 }
 }

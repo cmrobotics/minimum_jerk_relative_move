@@ -4,11 +4,12 @@
 #include "cmr_tests_utils/basic_service_server_test.hpp"
 #include "cmr_msgs/srv/is_collision_free.hpp"
 
-namespace minimum_jerk_test {
+namespace minimum_jerk_test
+{
 
 class CollisionCheckerServerMock: public cmr_tests_utils::BasicServiceServerTest<cmr_msgs::srv::IsCollisionFree>
 {
-  public:
+public:
 
   CollisionCheckerServerMock(): cmr_tests_utils::BasicServiceServerTest<cmr_msgs::srv::IsCollisionFree>("collision_checker_server", "is_collision_free")
   {
@@ -20,8 +21,8 @@ class CollisionCheckerServerMock: public cmr_tests_utils::BasicServiceServerTest
     is_collision_free_ = is_collision_free;
   }
 
-  void request_callback(const std::shared_ptr<rmw_request_id_t>, 
-                        const std::shared_ptr<cmr_msgs::srv::IsCollisionFree::Request> request, 
+  void request_callback(const std::shared_ptr<rmw_request_id_t>,
+                        const std::shared_ptr<cmr_msgs::srv::IsCollisionFree::Request> request,
                         std::shared_ptr<cmr_msgs::srv::IsCollisionFree::Response> response) override
   {
     cmr_tests_utils::BasicServiceServerTest<cmr_msgs::srv::IsCollisionFree>::last_request_ = request;
@@ -30,7 +31,7 @@ class CollisionCheckerServerMock: public cmr_tests_utils::BasicServiceServerTest
     response->success = true;
   }
 
-  private:
+private:
 
   bool is_collision_free_;
 

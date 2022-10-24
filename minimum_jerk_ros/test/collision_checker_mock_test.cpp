@@ -68,6 +68,6 @@ TEST(CollisionCheckerMock, test_collision_checker_mock)
   EXPECT_TRUE(response);
   EXPECT_TRUE(response->success);
   EXPECT_TRUE(response->is_collision_free);
-  
+
   rclcpp::shutdown();
 }

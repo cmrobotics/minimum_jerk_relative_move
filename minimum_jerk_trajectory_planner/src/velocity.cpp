@@ -4,20 +4,20 @@ namespace minimum_jerk
 {
 Velocity::Velocity(double vx, double vy, double vtheta)
 {
-    x_ = vx;
-    y_ = vy;
-    theta_ = vtheta;
+  x_ = vx;
+  y_ = vy;
+  theta_ = vtheta;
 }
 double Velocity::get_x() const
 {
-    return x_;
+  return x_;
 }
 double Velocity::get_y() const
 {
-    return y_;
+  return y_;
 }
 double Velocity::get_theta() const
 {
-    return theta_;
+  return theta_;
 }
 }
