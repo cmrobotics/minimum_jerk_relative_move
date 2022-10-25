@@ -115,7 +115,10 @@ void MinimumJerkRos::rotation_callback()
   RCLCPP_INFO(this->get_logger(), "Rotation: %f rad, min_vel: %f, collision_check: %i, yaw_goal_tolerance: %f, data_save: %i",
               goal->target_yaw, goal->min_velocity, goal->enable_collision_check, goal->yaw_goal_tolerance, goal->enable_data_save);
 
-  if (goal->target_yaw <= goal->yaw_goal_tolerance) {
+  double yaw_tolerance;
+  (goal->yaw_goal_tolerance > 0) ? yaw_tolerance = goal->yaw_goal_tolerance : yaw_tolerance = 0.1;
+
+  if (abs(goal->target_yaw) <= yaw_tolerance) {
     auto r = std::make_shared<Rotation::Result>();
     r->total_elapsed_time.nanosec = 0;
     action_rotation_server_->succeeded_current(r);
@@ -140,8 +143,6 @@ void MinimumJerkRos::rotation_callback()
   auto rotation_feedback = std::make_shared<Rotation::Feedback>();
   auto angular_vel = geometry_msgs::msg::Twist();
   angular_vel.angular = geometry_msgs::msg::Vector3();
-  double yaw_tolerance;
-  (goal->yaw_goal_tolerance > 0) ? yaw_tolerance = goal->yaw_goal_tolerance : yaw_tolerance = 0.1;
 
   auto odometry = compute_rotation_velocities_(goal);
   auto poses = convert_poses_to_posestampeds_(odometry.get_poses());
@@ -264,7 +265,10 @@ void MinimumJerkRos::translation_callback()
   RCLCPP_INFO(this->get_logger(), "Translation: %f m, min_velocity: %f, collision_check: %i, xy_goal_tolerance: %f, data_save: %i",
               goal->target_x, goal->min_velocity, goal->enable_collision_check, goal->xy_goal_tolerance, goal->enable_data_save);
 
-  if (goal->target_x == 0) {
+  double xy_tolerance;
+  (goal->xy_goal_tolerance > 0) ? xy_tolerance = goal->xy_goal_tolerance : xy_tolerance = 0.015;
+
+  if (abs(goal->target_x) <= xy_tolerance) {
     auto r = std::make_shared<Translation::Result>();
     r->total_elapsed_time.nanosec = 0;
     action_translation_server_->succeeded_current(r);
@@ -283,8 +287,7 @@ void MinimumJerkRos::translation_callback()
   auto translation_feedback = std::make_shared<Translation::Feedback>();
   auto linear_vel = geometry_msgs::msg::Twist();
   linear_vel.linear = geometry_msgs::msg::Vector3();
-  double xy_tolerance;
-  (goal->xy_goal_tolerance > 0) ? xy_tolerance = goal->xy_goal_tolerance : xy_tolerance = 0.015;
+
   auto odometry = compute_translation_velocities_(goal);
   auto poses = convert_poses_to_posestampeds_(odometry.get_poses());
 
