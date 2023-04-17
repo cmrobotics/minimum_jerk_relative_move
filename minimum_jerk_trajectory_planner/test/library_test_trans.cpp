@@ -12,7 +12,7 @@
 #include <cmr_tests_utils/basic_tf_listener_node_test.hpp>
 #include <cmr_tests_utils/utils.hpp>
 
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2/utils.h>
 
 #include "minimum_jerk_trajectory_planner/robot.hpp"

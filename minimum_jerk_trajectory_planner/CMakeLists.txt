@@ -15,10 +15,18 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 
-include_directories(
-  include
+
+include_directories(include
+  ${rclcpp_lifecycle_INCLUDE_DIRS}
+  ${tf2_geometry_msgs_INCLUDE_DIRS}
+  ${nav_msgs_INCLUDE_DIRS}
 )
 
 add_library(${PROJECT_NAME} SHARED
@@ -32,7 +40,18 @@ add_library(${PROJECT_NAME} SHARED
 
 target_link_libraries(${PROJECT_NAME})
 
-ament_target_dependencies(${PROJECT_NAME})
+set(dependencies
+  "ament_cmake"
+  "rclcpp"
+  "rclcpp_lifecycle"
+  "tf2_geometry_msgs"
+  "nav_msgs"
+)
+
+ament_target_dependencies(
+  ${PROJECT_NAME}
+  ${dependencies}
+  )
 
 install(
   DIRECTORY include/
