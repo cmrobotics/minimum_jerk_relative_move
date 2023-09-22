@@ -2,7 +2,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include "nav2_util/lifecycle_node.hpp"
 #include <rclcpp_lifecycle/lifecycle_publisher.hpp>
 
 #include "rclcpp_action/rclcpp_action.hpp"
@@ -30,19 +30,19 @@
 
 namespace minimum_jerk
 {
-class MinimumJerkRos : public rclcpp_lifecycle::LifecycleNode
+class MinimumJerkRos : public nav2_util::LifecycleNode
 {
 public:
   using Rotation = minimum_jerk_msgs::action::Rotate;
   using Translation = minimum_jerk_msgs::action::Translate;
 
-  explicit MinimumJerkRos(bool intra_process_comms = false);
+  explicit MinimumJerkRos(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_activate(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_deactivate(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_cleanup(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_shutdown(const rclcpp_lifecycle::State &);
+  nav2_util::CallbackReturn on_configure(const rclcpp_lifecycle::State &);
+  nav2_util::CallbackReturn on_activate(const rclcpp_lifecycle::State &);
+  nav2_util::CallbackReturn on_deactivate(const rclcpp_lifecycle::State &);
+  nav2_util::CallbackReturn on_cleanup(const rclcpp_lifecycle::State &);
+  nav2_util::CallbackReturn on_shutdown(const rclcpp_lifecycle::State &);
 
   using ActionServerRot = nav2_util::SimpleActionServer<Rotation>;
   std::shared_ptr<ActionServerRot> action_rotation_server_;
