@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
 
   rclcpp::init(argc, argv);
   rclcpp::executors::MultiThreadedExecutor exe;
-  auto nh_ = std::make_shared<minimum_jerk::MinimumJerkRos>();
+  auto nh_ = std::make_shared<minimum_jerk::MinimumJerkRos>("minimum_jerk_ros");
 
   exe.add_node(nh_->get_node_base_interface());
   exe.spin();

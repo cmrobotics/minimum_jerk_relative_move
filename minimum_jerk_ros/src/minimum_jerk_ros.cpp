@@ -5,7 +5,7 @@ using namespace std::chrono_literals;
 
 namespace minimum_jerk
 {
-MinimumJerkRos::MinimumJerkRos(const rclcpp::NodeOptions & options) : nav2_util::LifecycleNode("minimum_jerk_ros", "", options)
+MinimumJerkRos::MinimumJerkRos(const std::string & node_name, const rclcpp::NodeOptions & options) : nav2_util::LifecycleNode(node_name, "", options)
 {
   RCLCPP_INFO(this->get_logger(), "on_initialize()...");
   this->declare_parameter<double>("transform_tolerance", 1.0);

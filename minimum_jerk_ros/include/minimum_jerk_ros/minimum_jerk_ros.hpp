@@ -36,7 +36,7 @@ public:
   using Rotation = minimum_jerk_msgs::action::Rotate;
   using Translation = minimum_jerk_msgs::action::Translate;
 
-  explicit MinimumJerkRos(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  explicit MinimumJerkRos(const std::string & node_name, const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   nav2_util::CallbackReturn on_configure(const rclcpp_lifecycle::State &);
   nav2_util::CallbackReturn on_activate(const rclcpp_lifecycle::State &);
