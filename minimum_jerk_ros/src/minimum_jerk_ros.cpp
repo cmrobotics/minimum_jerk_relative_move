@@ -66,6 +66,7 @@ nav2_util::CallbackReturn MinimumJerkRos::on_activate(const rclcpp_lifecycle::St
   this->goal_pose_pub_->on_activate();
   this->trajectory_pub_->on_activate();
   RCLCPP_INFO(this->get_logger(), "Action server successfully activated...");
+  createBond();
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
