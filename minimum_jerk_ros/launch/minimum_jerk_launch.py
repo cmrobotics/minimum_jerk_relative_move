@@ -45,6 +45,7 @@ def generate_launch_description():
         package="minimum_jerk_ros",
         executable="minimum_jerk_ros",
         name="minimum_jerk_ros",
+        respawn = True,
         output='screen',
         remappings=remappings,
         parameters=[configured_params],

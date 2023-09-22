@@ -5,7 +5,7 @@ using namespace std::chrono_literals;
 
 namespace minimum_jerk
 {
-MinimumJerkRos::MinimumJerkRos(bool intra_process_comms) : rclcpp_lifecycle::LifecycleNode("minimum_jerk_ros", rclcpp::NodeOptions().use_intra_process_comms(intra_process_comms))
+MinimumJerkRos::MinimumJerkRos(const std::string & node_name, const rclcpp::NodeOptions & options) : nav2_util::LifecycleNode(node_name, "", options)
 {
   RCLCPP_INFO(this->get_logger(), "on_initialize()...");
   this->declare_parameter<double>("transform_tolerance", 1.0);
@@ -16,7 +16,7 @@ MinimumJerkRos::MinimumJerkRos(bool intra_process_comms) : rclcpp_lifecycle::Lif
   this->declare_parameter<bool>("debug_trajectory", true);
 }
 
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn MinimumJerkRos::on_configure(const rclcpp_lifecycle::State &)
+nav2_util::CallbackReturn MinimumJerkRos::on_configure(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(this->get_logger(), "on_configure()...");
 
@@ -53,10 +53,10 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Minimu
   goal_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("minimum_jerk_goal_pose", 1);
 
   obstacle_lookahead_distance_ = std::clamp(obstacle_lookahead_distance_, robot_radius_ + 0.1, 1.0);
-  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+  return nav2_util::CallbackReturn::SUCCESS;
 }
 
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn MinimumJerkRos::on_activate(const rclcpp_lifecycle::State &)
+nav2_util::CallbackReturn MinimumJerkRos::on_activate(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(this->get_logger(), "on_activate()...");
   this->action_rotation_server_->activate();
@@ -66,10 +66,11 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Minimu
   this->goal_pose_pub_->on_activate();
   this->trajectory_pub_->on_activate();
   RCLCPP_INFO(this->get_logger(), "Action server successfully activated...");
-  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+  createBond();
+  return nav2_util::CallbackReturn::SUCCESS;
 }
 
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn MinimumJerkRos::on_deactivate(const rclcpp_lifecycle::State &)
+nav2_util::CallbackReturn MinimumJerkRos::on_deactivate(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(this->get_logger(), "on_deactivate()...");
   this->action_rotation_server_->deactivate();
@@ -78,10 +79,10 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Minimu
   this->obstacles_marker_pub_->on_deactivate();
   this->goal_pose_pub_->on_deactivate();
   this->trajectory_pub_->on_deactivate();
-  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+  return nav2_util::CallbackReturn::SUCCESS;
 }
 
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn MinimumJerkRos::on_cleanup(const rclcpp_lifecycle::State &)
+nav2_util::CallbackReturn MinimumJerkRos::on_cleanup(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(this->get_logger(), "on_cleanup()...");
   this->publisher_.reset();
@@ -92,16 +93,16 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Minimu
   this->goal_pose_pub_.reset();
   this->trajectory_pub_.reset();
 
-  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+  return nav2_util::CallbackReturn::SUCCESS;
 }
 
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn MinimumJerkRos::on_shutdown(const rclcpp_lifecycle::State &)
+nav2_util::CallbackReturn MinimumJerkRos::on_shutdown(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(this->get_logger(), "on_shutdown()...");
   this->publisher_.reset();
   this->goal_pose_pub_.reset();
   this->trajectory_pub_.reset();
-  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+  return nav2_util::CallbackReturn::SUCCESS;
 }
 
 void MinimumJerkRos::rotation_callback()
